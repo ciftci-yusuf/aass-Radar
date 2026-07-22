@@ -6,8 +6,14 @@ from streamlit_folium import st_folium
 from sklearn.ensemble import RandomForestClassifier
 import requests
 import time
+import pydeck as pdk
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
-# --- SAYFA YAPILANDIRMASI & MILITARY GRADE TEMA ---
+# --- SAYFA YAPILANDIRMASI & MILITARY TEMA ---
 st.set_page_config(
     page_title="AASS - DEFENSE & AIRSPACE COMMAND CENTER",
     page_icon="🛡️",
@@ -45,17 +51,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AASS — Otonom Hava Sahası Komuta & Savunma Merkezi")
-st.caption("Çoklu Geofence Koruma Halkaları, İHA/Dron Vektör Tespiti & Taktik Kara Kutusu (Blackbox)")
+st.caption("Çoklu Geofence Koruma Halkaları, 3D İrtifa Analizi & OTOMATİK RAPOR MOTORU")
 
-# --- KRİTİK HAVALİMANI BÖLGELERİ (GEOFENCE CIRCLES) ---
 HAVALIMANI_GEOFENCE = [
-    {"ad": "İstanbul Havalimanı (IST) Güvenlik Halkası", "lat": 41.275, "lon": 28.751, "yarıcap_m": 15000},
-    {"ad": "Sabiha Gökçen (SAW) Güvenlik Halkası", "lat": 40.898, "lon": 29.309, "yarıcap_m": 12000},
-    {"ad": "Ankara Esenboğa (ESB) Güvenlik Halkası", "lat": 40.128, "lon": 32.995, "yarıcap_m": 15000}
+    {"ad": "İstanbul Havalimanı (IST)", "lat": 41.275, "lon": 28.751, "yarıcap_m": 15000},
+    {"ad": "Sabiha Gökçen (SAW)", "lat": 40.898, "lon": 29.309, "yarıcap_m": 12000},
+    {"ad": "Ankara Esenboğa (ESB)", "lat": 40.128, "lon": 32.995, "yarıcap_m": 15000}
 ]
 
-LIMANLAR = ["IST (İstanbul)", "SAW (Sabiha Gökçen)", "ESB (Ankara)", "ADB (İzmir)", "AYT (Antalya)", "FRA (Frankfurt)", "LHR (Londra)", "DXB (Dubai)"]
-HAVAYOLLARI = ["Türk Hava Yolları", "Pegasus", "Baykar İHA/Dron", "TUSAŞ Otonom İHA", "SunExpress", "AJet", "Lufthansa"]
+LIMANLAR = ["IST (İstanbul)", "SAW (Sabiha Gökçen)", "ESB (Ankara)", "ADB (İzmir)", "AYT (Antalya)", "FRA (Frankfurt)", "DXB (Dubai)"]
+HAVAYOLLARI = ["Türk Hava Yolları", "Pegasus", "Baykar İHA/Dron", "TUSAŞ Otonom İHA", "SunExpress", "Lufthansa"]
 
 def tahmini_rota_bul(callsign, idx):
     np.random.seed(abs(hash(str(callsign))) % 1000)
@@ -65,11 +70,9 @@ def tahmini_rota_bul(callsign, idx):
     is_uav = "İHA" in havayolu or "Dron" in havayolu or "UAV" in str(callsign)
     return kalkis, varis, havayolu, is_uav
 
-# --- CANLI ADS-B & İHA SIMULASYON MOTORU ---
 def ucak_verisi_getir():
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
-    
     try:
         response = requests.get(url, timeout=4)
         if response.status_code == 200:
@@ -153,6 +156,48 @@ def ucak_verisi_getir():
             
     return pd.DataFrame(ucak_listesi)
 
+# PDF RAPOR ÜRETİCİ
+def pdf_rapor_olustur(dataframe, riskliler):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#003366"), spaceAfter=12)
+    story.append(Paragraph("AASS HAVACILIK GÜVENLİK & TAKTİK İHLAL RAPORU", title_style))
+    story.append(Paragraph(f"<b>Rapor Tarihi:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Spacer(1, 15))
+
+    story.append(Paragraph(f"<b>Toplam Takip Edilen Obje:</b> {len(dataframe)}", styles['Normal']))
+    story.append(Paragraph(f"<b>Tespit Edilen Kritik Riskli Obje Sayısı:</b> {len(riskliler)}", styles['Normal']))
+    story.append(Spacer(1, 15))
+
+    story.append(Paragraph("<b>🚨 KRİTİK TEHDİT / İHLAL LİSTESİ</b>", styles['Heading2']))
+    
+    table_data = [["Çağrı Kodu", "Tip", "İrtifa (m)", "Hız (km/h)", "Risk Skoru"]]
+    for _, row in riskliler.iterrows():
+        tip = "İHA/Dron" if row['is_uav'] else "Uçak"
+        table_data.append([row['ucak_id'], tip, str(row['irtifa_m']), str(row['hiz_kmh']), f"%{row['risk_skoru']*100:.1f}"])
+
+    if len(table_data) > 1:
+        t = Table(table_data, colWidths=[100, 80, 90, 90, 90])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#721c24")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f8d7da")),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(t)
+    else:
+        story.append(Paragraph("Şu an aktif bir tehdit ihlali bulunmamaktadır.", styles['Normal']))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 # --- SIDEBAR KONTROL PANELİ ---
 st.sidebar.title("🎛️ DEFENSE COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
@@ -180,103 +225,85 @@ if not df.empty:
     df['alarm'] = df['risk_skoru'] >= threshold
     riskli_df = df[df['alarm']].sort_values(by='risk_skoru', ascending=False)
 
-    # --- SİSTEM UYARI HUD ---
     if len(riskli_df) > 0:
-        for _, r in riskli_df.head(2).iterrows():
-            st.toast(f"🚨 TEHDİT: {r['ucak_id']} ({r['havayolu']}) | Risk: %{r['risk_skoru']*100:.0f}", icon="⚠️")
-        
-        st.markdown(
-            f'<div class="threat-hud">🚨 [TAKTİK ALARM] {len(riskli_df)} Hava Aracı Kritik Geofence Bölgesine Yaklaşıyor!</div>',
-            unsafe_allow_html=True
-        )
-        
-        if sesli_alarm:
-            st.html("""
-                <script>
-                var audio = new Audio('https://media.geeksforgeeks.org/wp-content/uploads/20190531135120/beep.mp3');
-                audio.play();
-                </script>
-            """)
+        st.markdown(f'<div class="threat-hud">🚨 [TAKTİK ALARM] {len(riskli_df)} Hava Aracı Kritik Geofence Bölgesine Yaklaşıyor!</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Hava sahasındaki tüm vektörler emniyetli rotalarda.</div>', unsafe_allow_html=True)
 
-    # METRİKLER HUD
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Hava Aracı", len(df))
     m2.metric("Tespit Edilen İHA/Dron", len(df[df['is_uav']]))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
-    m4.metric("Geofence Bölgeleri", "3 Havalimanı (Aktif)")
+    
+    # PDF RAPOR İNDİRME BUTONU
+    pdf_data = pdf_rapor_olustur(df, riskli_df)
+    m4.download_button(
+        label="📄 RESMİ PDF RAPORU İNDİR",
+        data=pdf_data,
+        file_name=f"AASS_Taktik_Rapor_{int(time.time())}.pdf",
+        mime="application/pdf"
+    )
 
     st.markdown("---")
 
-    c1, c2 = st.columns([2.2, 1])
+    # SEKMELİ HARİTA BÖLÜMÜ (2D vs 3D)
+    tab_2d, tab_3d = st.tabs(["📍 2D Taktik Harita", "🌐 3D İrtifa & Vektör Analizi"])
 
-    with c1:
-        st.subheader("📍 Canlı Taktik Komuta Haritası")
-        m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
+    with tab_2d:
+        c1, c2 = st.columns([2.2, 1])
+        with c1:
+            m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
+            for gf in HAVALIMANI_GEOFENCE:
+                folium.Circle(location=[gf["lat"], gf["lon"]], radius=gf["yarıcap_m"], color="#FF3344", fill=True, fill_opacity=0.2, popup=gf["ad"]).add_to(m)
+
+            for _, row in df.iterrows():
+                is_risk = row['alarm']
+                is_uav = row['is_uav']
+                color = "#FF0033" if is_risk else ("#FFCC00" if is_uav else "#00FFCC")
+                
+                folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=2.5 if is_risk else 1.2).add_to(m)
+                folium.CircleMarker(location=(row['lat'], row['lon']), radius=7 if is_uav else 5, color=color, fill=True, fill_color=color).add_to(m)
+
+            st_folium(m, width=850, height=500, key="taktik_harita_2d", returned_objects=[])
+
+        with c2:
+            st.subheader("📼 BLACKBOX TELEMETRİ")
+            secili_ucak = st.selectbox("Hava Aracı Seçin:", df['ucak_id'].unique())
+            if secili_ucak:
+                ucak_detay = df[df['ucak_id'] == secili_ucak].iloc[0]
+                st.info(f"**Tip:** {'🚁 İHA/Dron' if ucak_detay['is_uav'] else '✈️ Yolcu Uçağı'}")
+                st.write(f"• **Operatör:** {ucak_detay['havayolu']}")
+                st.write(f"• **Telemetri:** {ucak_detay['irtifa_m']} m | {ucak_detay['hiz_kmh']} km/h")
+                st.caption("Tahmini İrtifa Profili")
+                st.line_chart([ucak_detay['irtifa_m'] + np.random.randint(-150, 150) for _ in range(10)])
+
+    with tab_3d:
+        st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
+        st.caption("Hava araçlarının yüksekliği (irtifası) 3 boyutlu sütun yükseklikleri ile modellenmiştir.")
         
-        # Havalimanı Geofence Çemberleri
-        for gf in HAVALIMANI_GEOFENCE:
-            folium.Circle(
-                location=[gf["lat"], gf["lon"]],
-                radius=gf["yarıcap_m"],
-                color="#FF3344",
-                fill=True,
-                fill_color="#FF3344",
-                fill_opacity=0.2,
-                popup=gf["ad"]
-            ).add_to(m)
+        # PyDeck 3D Katmanı
+        layer = pdk.Layer(
+            "ColumnLayer",
+            data=df,
+            get_position=["lon", "lat"],
+            get_elevation="irtifa_m",
+            elevation_scale=1,
+            radius=12000,
+            get_fill_color="[alarm ? 255 : 0, alarm ? 50 : 255, alarm ? 50 : 200, 180]",
+            pickable=True,
+            auto_highlight=True,
+        )
 
-        for _, row in df.iterrows():
-            is_risk = row['alarm']
-            is_uav = row['is_uav']
-            
-            color = "#FF0033" if is_risk else ("#FFCC00" if is_uav else "#00FFCC")
-            icon_type = "🛸 İHA/DRON" if is_uav else "✈️ YOLCU UÇAĞI"
-            
-            popup_html = f"""
-            <div style='font-family: Arial, sans-serif; font-size: 13px; width: 230px; line-height: 1.6;'>
-                <h4 style='margin:0 0 5px 0; color:#0055ff;'>{icon_type}: {row['ucak_id']}</h4>
-                <b>🏢 Birlik/Operatör:</b> {row['havayolu']}<br>
-                <b>🛫 Kalkış:</b> {row['kalkis']}<br>
-                <b>🛬 Varış:</b> {row['varis']}<br>
-                <b>🆔 ICAO24:</b> {row['icao24']}<br>
-                <hr style='margin:5px 0;'>
-                <b>📈 İrtifa:</b> {row['irtifa_m']} m<br>
-                <b>🚀 Hız:</b> {row['hiz_kmh']} km/h<br>
-                <b>🧭 Yön:</b> {row['yon_deg']}°<br>
-                <b>⚠️ AI Risk Skoru:</b> <span style='color:{color}; font-weight:bold;'>%{row['risk_skoru']*100:.1f}</span>
-            </div>
-            """
-            
-            folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=2.5 if is_risk else 1.2, opacity=0.85).add_to(m)
-            folium.CircleMarker(
-                location=(row['lat'], row['lon']),
-                radius=7 if is_uav else 5,
-                color=color,
-                fill=True,
-                fill_color=color,
-                popup=folium.Popup(popup_html, max_width=260)
-            ).add_to(m)
+        view_state = pdk.ViewState(
+            latitude=39.0,
+            longitude=35.0,
+            zoom=5.5,
+            pitch=45,
+            bearing=15
+        )
 
-        # Haritayı sabitleyen ve titremeyi önleyen bileşen düzenlemesi:
-        st_folium(m, width=850, height=520, key="taktik_harita", returned_objects=[])
-
-    with c2:
-        st.subheader("📼 TACTICAL BLACKBOX & TELEMETRİ")
-        secili_ucak = st.selectbox("İncelemek İstediğiniz Hava Aracını Seçin:", df['ucak_id'].unique())
-        
-        if secili_ucak:
-            ucak_detay = df[df['ucak_id'] == secili_ucak].iloc[0]
-            st.info(f"**Tip:** {'🚁 İHA/Dron' if ucak_detay['is_uav'] else '✈️ Yolcu Uçağı'}")
-            st.write(f"• **Operatör:** {ucak_detay['havayolu']}")
-            st.write(f"• **Kalkış ➔ Varış:** {ucak_detay['kalkis']} ➔ {ucak_detay['varis']}")
-            st.write(f"• **Anlık Telemetri:** {ucak_detay['irtifa_m']} m | {ucak_detay['hiz_kmh']} km/h")
-            
-            # Anlık Projeksiyon Grafiği
-            st.caption("Yapay Zeka Tarafından Hesaplanan Tahmini İrtifa Profili")
-            irtifa_profili = [ucak_detay['irtifa_m'] + np.random.randint(-150, 150) for _ in range(10)]
-            st.line_chart(irtifa_profili)
+        r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Hava Aracı: {ucak_id}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
+        st.pydeck_chart(r)
 
     if oto_yenile:
         time.sleep(refresh_rate)
