@@ -63,13 +63,21 @@ st.markdown("""
         border-radius: 8px;
         margin-top: 10px;
     }
+    .radio-box {
+        background-color: #0d1b2a;
+        border: 1px solid #00b4d8;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        color: #90e0ef;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AASS — TSK & Otonom Milli Hava Sahası Savunma Merkezi")
-st.caption("Tüm Türkiye Havalimanları Veritabanı, TSK İHA/SİHA Filosu & AESA Radar Füzyon Paneli")
+st.caption("Türkiye Geneli Tüm Havalimanları, TSK Filosu & ACARS/Telsiz Taktik İletişim Paneli")
 
-# --- TÜRKİYE TÜM HAVALİMANLARI TAM LİSTESİ (53 HAVALİMANI & ÜS) ---
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
     {"kod": "ADF", "ad": "Adıyaman Havalimanı", "lat": 37.731, "lon": 38.468, "tip": "Sivil"},
@@ -128,7 +136,6 @@ HAVALIMANLARI = [
     {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"}
 ]
 
-# TSK VE SİVİL FİLOLAR
 BİRLİKLER_VE_FİLOLAR = [
     {"ad": "Baykar Teknoloji (TB2/TB3/AKINCI)", "is_tsk": True, "uav": True},
     {"ad": "TUSAŞ Otonom İHA (ANKA/AKSUNGUR/KIZILELMA)", "is_tsk": True, "uav": True},
@@ -154,7 +161,6 @@ def tahmini_rota_bul(callsign, idx):
     
     return kalkis, varis, havayolu, is_uav, is_tsk, kalkis_saat, varis_saat
 
-# --- CANLI ADS-B + RADAR MOTORU ---
 def ucak_verisi_getir(radar_fuzyon_aktif):
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
@@ -298,7 +304,6 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             
     return pd.DataFrame(ucak_listesi)
 
-# PDF RAPOR ÜRETİCİ
 def pdf_rapor_olustur(dataframe, riskliler):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -341,8 +346,8 @@ def pdf_rapor_olustur(dataframe, riskliler):
 st.sidebar.title("🎛️ DEFENSE COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu", value=True)
-goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Haritada Göster", value=True)
-sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK İHA/SİHA ve Askeri Filoyu Süz", value=False)
+goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Göster", value=True)
+sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK İHA/SİHA Filosunu Süz", value=False)
 threshold = st.sidebar.slider("AI Tehdit Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
 
 df = ucak_verisi_getir(radar_fuzyon)
@@ -394,7 +399,6 @@ if not df.empty:
         with c1:
             m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
             
-            # İSTEĞE BAĞLI HAVALİMANI İKONLARI
             if goster_havalimanlari:
                 for h in HAVALIMANLARI:
                     is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
@@ -408,7 +412,6 @@ if not df.empty:
                         icon=folium.Icon(color=icon_color, icon=icon_shape, prefix="fa")
                     ).add_to(m)
 
-            # UÇAKLAR, İHALAR VE İMLEÇ ÜZERİNE GELİNCE GÖZÜKEN TOOLTIP BİLGİLERİ
             for _, row in df.iterrows():
                 is_risk = row['alarm']
                 is_uav = row['is_uav']
@@ -445,9 +448,9 @@ if not df.empty:
 
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
-        # SAĞ PANEL: DETAYLI UÇUŞ KARTI VE ROTA ANALİZİ
+        # SAĞ PANEL: TAKTİK İNCELEME & ACARS İLETİŞİM MERKEZİ
         with c2:
-            st.subheader("🔎 BÜTÜN UÇUŞ VE ROTA DETAYLARI")
+            st.subheader("🔎 UÇUŞ DETAYLARI & TAKTİK TELSİZ")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Vektörü Seçin:", df['ucak_id'].unique())
             
             if secili_ucak:
@@ -470,12 +473,33 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                if u['is_ghost']:
-                    st.markdown('<div class="ghost-alert">🚨 TANİMSİZ SİZMA HEDEFİ!</div>', unsafe_allow_html=True)
-                    st.button("🚀 F-16 ÖNLEME JETİ GÖREVLENDİR", type="primary")
-
-                st.caption("📈 Anlık Telemetri & İrtifa Profili")
-                st.line_chart([u['irtifa_m'] + np.random.randint(-120, 120) for _ in range(10)])
+                # --- TAKTİK TELSİZ / ACARS İLETİŞİM MODÜLÜ ---
+                st.markdown("---")
+                st.subheader("📻 ACARS / VHF TAKTİK TELSİZ MESAJA")
+                
+                hazir_komut = st.selectbox(
+                    "Hazır Taktik ACARS Komutu Seçin:",
+                    [
+                        "⚠️ SQUAWK KODUNUZU DÜZELTİN (IDENTIFY YOURSELF)",
+                        "🛑 KRİTİK BÖLGEDEN DERHAL UZAKLAŞIN (DIVERT COURSE)",
+                        "🛬 İNİŞ İÇİN EN YAKIN MİLLİ HAVALİMANINA YÖNLENİN",
+                        "✏️ Özel Telsiz Mesajı Yaz..."
+                    ]
+                )
+                
+                if "Özel" in hazir_komut:
+                    mesaj_metni = st.text_input("Uçağa İletilecek Mesajı Yazın:", value="SQUAWK 7700 TEYİT EDİN.")
+                else:
+                    mesaj_metni = hazir_komut
+                    
+                if st.button("📡 MESAJI ACARS/TELSİZ İLE GÖNDER", type="primary"):
+                    st.toast(f"📡 Mesaj İletiliyor: {u['ucak_id']}...", icon="📡")
+                    time.sleep(1)
+                    
+                    if u['is_ghost']:
+                        st.error("❌ YANIT ALINAMADI: Hedef SQUAWK/ACARS sinyali vermiyor! Düşman unsuru olabilir.")
+                    else:
+                        st.success(f"✅ ACARS ONAYI ALINDI ({u['ucak_id']}): 'Anlaşıldı komutanım, mesaj alındı ve uygulanıyor.'")
 
     with tab_3d:
         st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
