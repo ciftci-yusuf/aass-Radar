@@ -67,31 +67,67 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AASS — TSK & Otonom Milli Hava Sahası Savunma Merkezi")
-st.caption("Türkiye Geneli Sivil/Askeri Üsler, TSK İHA/SİHA Filosu & AESA Radar Füzyon Paneli")
+st.caption("Türkiye Geneli Tüm Havalimanları, TSK İHA/SİHA Filosu & AESA Radar Füzyon Paneli")
 
-# --- TÜRKİYE TÜM SİVİL VE ASKERİ HAVALİMANLARI / ANA JET ÜSLERİ ---
+# --- TÜRKİYE TÜM SİVİL VE ASKERİ HAVALİMANLARI (VERİTABANI) ---
 HAVALIMANLARI = [
-    # Sivil Ana Hublar
-    {"kod": "IST", "ad": "İstanbul Havalimanı", "lat": 41.275, "lon": 28.751, "tip": "Sivil Ana Hub"},
-    {"kod": "SAW", "ad": "Sabiha Gökçen Havalimanı", "lat": 40.898, "lon": 29.309, "tip": "Sivil Uluslararası"},
-    {"kod": "ESB", "ad": "Ankara Esenboğa Havalimanı", "lat": 40.128, "lon": 32.995, "tip": "Sivil / Protokol"},
-    {"kod": "ADB", "ad": "İzmir Adnan Menderes", "lat": 38.292, "lon": 27.157, "tip": "Sivil Ege Hub"},
+    {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
+    {"kod": "ADF", "ad": "Adıyaman Havalimanı", "lat": 37.731, "lon": 38.468, "tip": "Sivil"},
+    {"kod": "AJI", "ad": "Ağrı Ahmed-i Hani Havalimanı", "lat": 39.654, "lon": 43.027, "tip": "Sivil"},
+    {"kod": "MZH", "ad": "Amasya Merzifon Havalimanı", "lat": 40.829, "lon": 35.521, "tip": "Sivil/Karma"},
+    {"kod": "ESB", "ad": "Ankara Esenboğa Havalimanı", "lat": 40.128, "lon": 32.995, "tip": "Sivil Başkent Hub"},
     {"kod": "AYT", "ad": "Antalya Havalimanı", "lat": 36.898, "lon": 30.800, "tip": "Sivil Uluslararası"},
-    {"kod": "DLM", "ad": "Muğla Dalaman Havalimanı", "lat": 36.713, "lon": 28.792, "tip": "Sivil Uluslararası"},
+    {"kod": "GZP", "ad": "Gazipaşa-Alanya Havalimanı", "lat": 36.299, "lon": 32.301, "tip": "Sivil"},
+    {"kod": "EDO", "ad": "Balıkesir Koca Seyit Havalimanı", "lat": 39.554, "lon": 27.013, "tip": "Sivil"},
+    {"kod": "BAL", "ad": "Batman Havalimanı", "lat": 37.929, "lon": 41.116, "tip": "Sivil"},
+    {"kod": "BGG", "ad": "Bingöl Havalimanı", "lat": 38.861, "lon": 40.592, "tip": "Sivil"},
+    {"kod": "YEI", "ad": "Bursa Yenişehir Havalimanı", "lat": 40.255, "lon": 29.562, "tip": "Sivil"},
+    {"kod": "CKZ", "ad": "Çanakkale Havalimanı", "lat": 40.137, "lon": 26.426, "tip": "Sivil"},
+    {"kod": "GKD", "ad": "Çanakkale Gökçeada Havalimanı", "lat": 40.200, "lon": 25.883, "tip": "Sivil"},
+    {"kod": "COV", "ad": "Çukurova Uluslararası Havalimanı", "lat": 36.890, "lon": 35.060, "tip": "Sivil Uluslararası"},
+    {"kod": "DNZ", "ad": "Denizli Çardak Havalimanı", "lat": 37.785, "lon": 29.701, "tip": "Sivil"},
+    {"kod": "DIY", "ad": "Diyarbakır Havalimanı", "lat": 37.893, "lon": 40.201, "tip": "Sivil/TSK Üssü"},
+    {"kod": "EZS", "ad": "Elazığ Havalimanı", "lat": 38.607, "lon": 39.291, "tip": "Sivil"},
+    {"kod": "ERC", "ad": "Erzincan Yıldırım Akbulut Havalimanı", "lat": 39.715, "lon": 39.526, "tip": "Sivil"},
+    {"kod": "ERZ", "ad": "Erzurum Havalimanı", "lat": 39.956, "lon": 41.170, "tip": "Sivil/Karma"},
+    {"kod": "AOE", "ad": "Eskişehir Hasan Polatkan Havalimanı", "lat": 39.812, "lon": 30.531, "tip": "Sivil"},
+    {"kod": "GZT", "ad": "Gaziantep Havalimanı", "lat": 36.947, "lon": 37.478, "tip": "Sivil"},
+    {"kod": "YKO", "ad": "Hakkâri Yüksekova Selahaddin Eyyubi", "lat": 37.549, "lon": 44.238, "tip": "Sivil"},
+    {"kod": "HTY", "ad": "Hatay Havalimanı", "lat": 36.363, "lon": 36.282, "tip": "Sivil"},
+    {"kod": "IGD", "ad": "Iğdır Şehit Bülent Aydın Havalimanı", "lat": 39.981, "lon": 43.864, "tip": "Sivil"},
+    {"kod": "ISE", "ad": "Isparta Süleyman Demirel Havalimanı", "lat": 37.861, "lon": 30.368, "tip": "Sivil"},
+    {"kod": "IST", "ad": "İstanbul Havalimanı", "lat": 41.275, "lon": 28.751, "tip": "Sivil Ana Hub"},
+    {"kod": "SAW", "ad": "İstanbul Sabiha Gökçen Havalimanı", "lat": 40.898, "lon": 29.309, "tip": "Sivil Hub"},
+    {"kod": "ISL", "ad": "İstanbul Atatürk Havalimanı (Özel/Kargo)", "lat": 40.976, "lon": 28.814, "tip": "Özel/Kargo/Devlet"},
+    {"kod": "ADB", "ad": "İzmir Adnan Menderes Havalimanı", "lat": 38.292, "lon": 27.157, "tip": "Sivil Hub"},
+    {"kod": "KSY", "ad": "Kars Harakani Havalimanı", "lat": 40.562, "lon": 43.115, "tip": "Sivil"},
+    {"kod": "KFS", "ad": "Kastamonu Havalimanı", "lat": 41.314, "lon": 33.795, "tip": "Sivil"},
+    {"kod": "ASR", "ad": "Kayseri Erkilet Havalimanı", "lat": 38.770, "lon": 35.495, "tip": "Sivil/TSK Karma"},
+    {"kod": "KCO", "ad": "Kocaeli Cengiz Topel Havalimanı", "lat": 40.735, "lon": 30.083, "tip": "Sivil"},
+    {"kod": "KYA", "ad": "Konya Havalimanı", "lat": 37.979, "lon": 32.561, "tip": "Sivil/TSK Üssü"},
+    {"kod": "MLX", "ad": "Malatya Erhaç Havalimanı", "lat": 38.435, "lon": 38.090, "tip": "Sivil/TSK Üssü"},
+    {"kod": "MQM", "ad": "Mardin Prof. Dr. Aziz Sancar", "lat": 37.223, "lon": 40.631, "tip": "Sivil"},
     {"kod": "BJV", "ad": "Milas-Bodrum Havalimanı", "lat": 37.250, "lon": 27.664, "tip": "Sivil Uluslararası"},
-    {"kod": "TZX", "ad": "Trabzon Havalimanı", "lat": 40.995, "lon": 39.789, "tip": "Sivil Karadeniz"},
-    {"kod": "ERZ", "ad": "Erzurum Havalimanı", "lat": 39.956, "lon": 41.170, "tip": "Sivil / Karma"},
-    {"kod": "GZT", "ad": "Gaziantep Havalimanı", "lat": 36.947, "lon": 37.478, "tip": "Sivil Bölgesel"},
-    {"kod": "GNY", "ad": "Şanlıurfa GAP Havalimanı", "lat": 37.456, "lon": 38.908, "tip": "Sivil Bölgesel"},
-    {"kod": "VAN", "ad": "Van Ferit Melen", "lat": 38.468, "lon": 43.332, "tip": "Sivil Bölgesel"},
+    {"kod": "MSR", "ad": "Muş Sultan Alparslan Havalimanı", "lat": 38.747, "lon": 41.662, "tip": "Sivil"},
+    {"kod": "NAV", "ad": "Nevşehir Kapadokya Havalimanı", "lat": 38.772, "lon": 34.534, "tip": "Sivil"},
+    {"kod": "OGU", "ad": "Ordu-Giresun Havalimanı", "lat": 40.966, "lon": 37.980, "tip": "Sivil Deniz Dolgu"},
+    {"kod": "RZV", "ad": "Rize-Artvin Havalimanı", "lat": 41.168, "lon": 40.830, "tip": "Sivil Deniz Dolgu"},
+    {"kod": "SZF", "ad": "Samsun Çarşamba Havalimanı", "lat": 41.265, "lon": 36.548, "tip": "Sivil"},
+    {"kod": "SXZ", "ad": "Siirt Havalimanı", "lat": 37.978, "lon": 41.839, "tip": "Sivil"},
+    {"kod": "NOP", "ad": "Sinop Havalimanı", "lat": 42.016, "lon": 35.066, "tip": "Sivil"},
+    {"kod": "VAS", "ad": "Sivas Nuri Demirağ Havalimanı", "lat": 39.814, "lon": 36.903, "tip": "Sivil"},
+    {"kod": "GNY", "ad": "Şanlıurfa GAP Havalimanı", "lat": 37.456, "lon": 38.908, "tip": "Sivil"},
+    {"kod": "NKT", "ad": "Şırnak Şerafettin Elçi Havalimanı", "lat": 37.365, "lon": 42.059, "tip": "Sivil"},
+    {"kod": "TEQ", "ad": "Tekirdağ Çorlu Atatürk Havalimanı", "lat": 41.138, "lon": 27.918, "tip": "Sivil"},
+    {"kod": "TJK", "ad": "Tokat Havalimanı", "lat": 40.309, "lon": 36.371, "tip": "Sivil"},
+    {"kod": "TZX", "ad": "Trabzon Havalimanı", "lat": 40.995, "lon": 39.789, "tip": "Sivil"},
+    {"kod": "USQ", "ad": "Uşak Havalimanı", "lat": 38.682, "lon": 29.472, "tip": "Sivil"},
+    {"kod": "VAN", "ad": "Van Ferit Melen Havalimanı", "lat": 38.468, "lon": 43.332, "tip": "Sivil"},
+    {"kod": "ONQ", "ad": "Zonguldak Çaycuma Havalimanı", "lat": 41.506, "lon": 27.530, "tip": "Sivil"},
     
-    # TSK Ana Jet Üsleri & Askeri Hava Sahaları
+    # Ekstra Kritik TSK Askeri Jet Üsleri
     {"kod": "AJU-1", "ad": "1. Ana Jet Üs Komutanlığı (Eskişehir)", "lat": 39.786, "lon": 30.582, "tip": "🎖️ TSK Askeri Üs"},
-    {"kod": "AJU-3", "ad": "3. Ana Jet Üs Komutanlığı (Konya)", "lat": 37.979, "lon": 32.561, "tip": "🎖️ TSK Askeri Üs"},
-    {"kod": "AJU-5", "ad": "5. Ana Jet Üs Komutanlığı (Merzifon)", "lat": 40.829, "lon": 35.521, "tip": "🎖️ TSK Askeri Üs"},
-    {"kod": "AJU-8", "ad": "8. Ana Jet Üs Komutanlığı (Diyarbakır)", "lat": 37.893, "lon": 40.201, "tip": "🎖️ TSK Askeri Üs"},
-    {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"},
-    {"kod": "DHU-DALAMAN", "ad": "Dalaman Deniz Hava Üssü", "lat": 36.702, "lon": 28.790, "tip": "🎖️ Deniz Kuvvetleri İHA Üssü"}
+    {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"}
 ]
 
 # TSK VE SİVİL HAVA ARAÇLARI KATEGORİSİ
@@ -176,7 +212,6 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
     if len(ucak_listesi) < 10:
         np.random.seed(int(time.time()) // 10)
         additional_count = 35 - len(ucak_listesi)
-        
         tsk_isimleri = ["AKINCI-TİHA-01", "KIZILELMA-02", "BAYRAKTAR-TB3", "ANKA-S-04", "SOLOTÜRK-F16", "TURK-AIR-FORCE-01"]
         
         for i in range(additional_count):
@@ -223,7 +258,6 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'lokasyonlar': lokasyonlar
             })
 
-    # TANİMSİZ SQUAWK SİNALSİZ HEDEFLER
     if radar_fuzyon_aktif:
         np.random.seed(int(time.time()) // 5)
         for g in range(2):
@@ -341,7 +375,7 @@ if not df.empty:
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Vektör", len(df))
-    m2.metric("TSK İHA/SİHA Filosu", len(df[df['is_uav']]))
+    m2.metric("Aktif Havalimanı/Üs", len(HAVALIMANLARI))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
     
     pdf_data = pdf_rapor_olustur(df, riskli_df)
@@ -354,14 +388,14 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 Türkiye Taktik Haritası & Havalimanları", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 Türkiye Taktik Haritası (53 Havalimanı)", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
         with c1:
             m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
             
-            # TÜRKİYE SİVİL VE TSK ASKERİ ÜSLERİ
+            # TÜRKİYE TÜM HAVALİMANLARI (SİVİL + ASKERİ)
             for h in HAVALIMANLARI:
                 is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
                 icon_color = "red" if is_askeri else "blue"
@@ -372,14 +406,6 @@ if not df.empty:
                     popup=f"<b>{h['ad']} ({h['kod']})</b><br>{h['tip']}",
                     tooltip=f"{'🎖️' if is_askeri else '🛫'} {h['kod']} - {h['ad']}",
                     icon=folium.Icon(color=icon_color, icon=icon_shape, prefix="fa")
-                ).add_to(m)
-                
-                folium.Circle(
-                    location=[h["lat"], h["lon"]],
-                    radius=15000 if is_askeri else 10000,
-                    color="#ff0000" if is_askeri else "#0088ff",
-                    fill=True,
-                    fill_opacity=0.1
                 ).add_to(m)
 
             # UÇAKLAR, İHALAR VE İMLEÇ ÜZERİNE GELİNCE GÖZÜKEN TOOLTIP BİLGİLERİ
@@ -405,8 +431,7 @@ if not df.empty:
                     color = "#00FFCC"
                     icon_type = "✈️ SİVİL UÇAK"
                 
-                # İMLEÇLE ÜZERİNE GELİNCE (HOVER) ÇIKACAK DETAYLI BİLGİ METNİ
-                hover_text = f"{icon_type}: {row['ucak_id']} | Operatör: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m | Hız: {row['hiz_kmh']} km/h"
+                hover_text = f"{icon_type}: {row['ucak_id']} | Birim: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m | Hız: {row['hiz_kmh']} km/h"
                 
                 folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=3 if is_ghost else 1.5, dash_array="5, 10" if is_ghost else None).add_to(m)
                 folium.CircleMarker(
@@ -415,7 +440,7 @@ if not df.empty:
                     color=color, 
                     fill=True, 
                     fill_color=color,
-                    tooltip=hover_text # Fareyle üzerine gelince otomatik açılır
+                    tooltip=hover_text
                 ).add_to(m)
 
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
