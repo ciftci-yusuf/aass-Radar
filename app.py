@@ -67,9 +67,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AASS — TSK & Otonom Milli Hava Sahası Savunma Merkezi")
-st.caption("Türkiye Geneli Tüm Havalimanları, TSK İHA/SİHA Filosu & AESA Radar Füzyon Paneli")
+st.caption("Tüm Türkiye Havalimanları Veritabanı, TSK İHA/SİHA Filosu & AESA Radar Füzyon Paneli")
 
-# --- TÜRKİYE TÜM SİVİL VE ASKERİ HAVALİMANLARI (VERİTABANI) ---
+# --- TÜRKİYE TÜM HAVALİMANLARI TAM LİSTESİ (53 HAVALİMANI & ÜS) ---
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
     {"kod": "ADF", "ad": "Adıyaman Havalimanı", "lat": 37.731, "lon": 38.468, "tip": "Sivil"},
@@ -98,7 +98,7 @@ HAVALIMANLARI = [
     {"kod": "ISE", "ad": "Isparta Süleyman Demirel Havalimanı", "lat": 37.861, "lon": 30.368, "tip": "Sivil"},
     {"kod": "IST", "ad": "İstanbul Havalimanı", "lat": 41.275, "lon": 28.751, "tip": "Sivil Ana Hub"},
     {"kod": "SAW", "ad": "İstanbul Sabiha Gökçen Havalimanı", "lat": 40.898, "lon": 29.309, "tip": "Sivil Hub"},
-    {"kod": "ISL", "ad": "İstanbul Atatürk Havalimanı (Özel/Kargo)", "lat": 40.976, "lon": 28.814, "tip": "Özel/Kargo/Devlet"},
+    {"kod": "ISL", "ad": "İstanbul Atatürk Havalimanı", "lat": 40.976, "lon": 28.814, "tip": "Özel/Kargo/Devlet"},
     {"kod": "ADB", "ad": "İzmir Adnan Menderes Havalimanı", "lat": 38.292, "lon": 27.157, "tip": "Sivil Hub"},
     {"kod": "KSY", "ad": "Kars Harakani Havalimanı", "lat": 40.562, "lon": 43.115, "tip": "Sivil"},
     {"kod": "KFS", "ad": "Kastamonu Havalimanı", "lat": 41.314, "lon": 33.795, "tip": "Sivil"},
@@ -124,13 +124,11 @@ HAVALIMANLARI = [
     {"kod": "USQ", "ad": "Uşak Havalimanı", "lat": 38.682, "lon": 29.472, "tip": "Sivil"},
     {"kod": "VAN", "ad": "Van Ferit Melen Havalimanı", "lat": 38.468, "lon": 43.332, "tip": "Sivil"},
     {"kod": "ONQ", "ad": "Zonguldak Çaycuma Havalimanı", "lat": 41.506, "lon": 27.530, "tip": "Sivil"},
-    
-    # Ekstra Kritik TSK Askeri Jet Üsleri
     {"kod": "AJU-1", "ad": "1. Ana Jet Üs Komutanlığı (Eskişehir)", "lat": 39.786, "lon": 30.582, "tip": "🎖️ TSK Askeri Üs"},
     {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"}
 ]
 
-# TSK VE SİVİL HAVA ARAÇLARI KATEGORİSİ
+# TSK VE SİVİL FİLOLAR
 BİRLİKLER_VE_FİLOLAR = [
     {"ad": "Baykar Teknoloji (TB2/TB3/AKINCI)", "is_tsk": True, "uav": True},
     {"ad": "TUSAŞ Otonom İHA (ANKA/AKSUNGUR/KIZILELMA)", "is_tsk": True, "uav": True},
@@ -156,7 +154,7 @@ def tahmini_rota_bul(callsign, idx):
     
     return kalkis, varis, havayolu, is_uav, is_tsk, kalkis_saat, varis_saat
 
-# --- CANLI ADS-B + TSK İHA & RADAR FÜZYON MOTORU ---
+# --- CANLI ADS-B + RADAR MOTORU ---
 def ucak_verisi_getir(radar_fuzyon_aktif):
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
@@ -343,6 +341,7 @@ def pdf_rapor_olustur(dataframe, riskliler):
 st.sidebar.title("🎛️ DEFENSE COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu", value=True)
+goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Haritada Göster", value=True)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK İHA/SİHA ve Askeri Filoyu Süz", value=False)
 threshold = st.sidebar.slider("AI Tehdit Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
 
@@ -375,7 +374,7 @@ if not df.empty:
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Vektör", len(df))
-    m2.metric("Aktif Havalimanı/Üs", len(HAVALIMANLARI))
+    m2.metric("Sistemdeki Havalimanı", len(HAVALIMANLARI))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
     
     pdf_data = pdf_rapor_olustur(df, riskli_df)
@@ -388,25 +387,26 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 Türkiye Taktik Haritası (53 Havalimanı)", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 Türkiye Taktik Haritası", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
         with c1:
             m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
             
-            # TÜRKİYE TÜM HAVALİMANLARI (SİVİL + ASKERİ)
-            for h in HAVALIMANLARI:
-                is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
-                icon_color = "red" if is_askeri else "blue"
-                icon_shape = "star" if is_askeri else "plane"
-                
-                folium.Marker(
-                    location=[h["lat"], h["lon"]],
-                    popup=f"<b>{h['ad']} ({h['kod']})</b><br>{h['tip']}",
-                    tooltip=f"{'🎖️' if is_askeri else '🛫'} {h['kod']} - {h['ad']}",
-                    icon=folium.Icon(color=icon_color, icon=icon_shape, prefix="fa")
-                ).add_to(m)
+            # İSTEĞE BAĞLI HAVALİMANI İKONLARI
+            if goster_havalimanlari:
+                for h in HAVALIMANLARI:
+                    is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
+                    icon_color = "red" if is_askeri else "blue"
+                    icon_shape = "star" if is_askeri else "plane"
+                    
+                    folium.Marker(
+                        location=[h["lat"], h["lon"]],
+                        popup=f"<b>{h['ad']} ({h['kod']})</b><br>{h['tip']}",
+                        tooltip=f"{'🎖️' if is_askeri else '🛫'} {h['kod']} - {h['ad']}",
+                        icon=folium.Icon(color=icon_color, icon=icon_shape, prefix="fa")
+                    ).add_to(m)
 
             # UÇAKLAR, İHALAR VE İMLEÇ ÜZERİNE GELİNCE GÖZÜKEN TOOLTIP BİLGİLERİ
             for _, row in df.iterrows():
@@ -422,7 +422,7 @@ if not df.empty:
                     color = "#FF3300"
                     icon_type = "⚠️ TEHDİT VEKTÖRÜ"
                 elif is_uav:
-                    color = "#00FF66" # TSK İHA'lar parlak yeşil
+                    color = "#00FF66"
                     icon_type = "🚁 TSK İHA/SİHA"
                 elif is_tsk:
                     color = "#3399FF"
