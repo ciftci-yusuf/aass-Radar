@@ -259,7 +259,8 @@ if not df.empty:
                 popup=folium.Popup(popup_html, max_width=260)
             ).add_to(m)
 
-        st_folium(m, width=850, height=520)
+        # Haritayı sabitleyen ve titremeyi önleyen bileşen düzenlemesi:
+        st_folium(m, width=850, height=520, key="taktik_harita", returned_objects=[])
 
     with c2:
         st.subheader("📼 TACTICAL BLACKBOX & TELEMETRİ")
