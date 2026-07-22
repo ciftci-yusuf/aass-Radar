@@ -67,25 +67,28 @@ def tahmini_rota_bul(callsign, idx):
     kalkis = np.random.choice(LIMANLAR)
     varis = np.random.choice([l for l in LIMANLAR if l != kalkis])
     havayolu = np.random.choice(HAVAYOLLARI)
-    is_uav = "İHA" in havayolu or "Dron" in havayolu or "UAV" in str(callsign)
+    is_uav = "İHA" in havayolu or "Dron" in havayolu or "UAV" in str(callsign) or "BAYRAKTAR" in str(callsign)
     return kalkis, varis, havayolu, is_uav
 
+# --- CANLI ADS-B & KESİNTİSİZ SIMULASYON MOTORU ---
 def ucak_verisi_getir():
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
+    
     try:
-        response = requests.get(url, timeout=4)
+        response = requests.get(url, timeout=3)
         if response.status_code == 200:
             data = response.json()
-            if "states" in data and data["states"] is not None:
-                for idx, state in enumerate(data["states"]):
-                    callsign = state[1].strip() if state[1] else f"THY{100+idx}"
-                    lon, lat = state[5], state[6]
-                    irtifa = state[7] if state[7] is not None else 6500
-                    hiz = (state[9] * 3.6) if state[9] is not None else 680
-                    yon = state[10] if state[10] is not None else 45
-                    
-                    if lat is not None and lon is not None:
+            states = data.get("states")
+            if states:
+                for idx, state in enumerate(states):
+                    if state[5] is not None and state[6] is not None:
+                        callsign = state[1].strip() if (state[1] and state[1].strip()) else f"THY{100+idx}"
+                        lon, lat = state[5], state[6]
+                        irtifa = state[7] if state[7] is not None else 6500
+                        hiz = (state[9] * 3.6) if state[9] is not None else 680
+                        yon = state[10] if state[10] is not None else 45
+                        
                         orta_lat, orta_lon = 39.1, 33.5
                         mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
                         kalkis, varis, havayolu, is_uav = tahmini_rota_bul(callsign, idx)
@@ -99,7 +102,7 @@ def ucak_verisi_getir():
                         
                         ucak_listesi.append({
                             'ucak_id': callsign,
-                            'icao24': state[0].upper(),
+                            'icao24': str(state[0]).upper(),
                             'ulke': state[2] if state[2] else "Türkiye",
                             'havayolu': havayolu,
                             'is_uav': is_uav,
@@ -116,14 +119,16 @@ def ucak_verisi_getir():
     except Exception:
         pass
 
-    if len(ucak_listesi) == 0:
+    # Canlı veri yetersizse yedek simülasyonları ekle
+    if len(ucak_listesi) < 10:
         np.random.seed(int(time.time()) // 10)
-        for i in range(35):
-            callsign = f"BAYRAKTAR-TB2-{i}" if i % 5 == 0 else (f"THY{100 + i}" if i % 2 == 0 else f"PGT{200 + i}")
+        additional_count = 35 - len(ucak_listesi)
+        for i in range(additional_count):
+            callsign = f"BAYRAKTAR-TB2-{i}" if i % 4 == 0 else (f"THY{100 + i}" if i % 2 == 0 else f"PGT{200 + i}")
             lat = np.random.uniform(36.5, 41.5)
             lon = np.random.uniform(27.0, 43.0)
-            irtifa = np.random.uniform(1200, 4000) if i % 5 == 0 else np.random.uniform(4000, 11000)
-            hiz = np.random.uniform(180, 280) if i % 5 == 0 else np.random.uniform(450, 850)
+            irtifa = np.random.uniform(1200, 4000) if i % 4 == 0 else np.random.uniform(4000, 11000)
+            hiz = np.random.uniform(180, 280) if i % 4 == 0 else np.random.uniform(450, 850)
             yon = np.random.uniform(0, 360)
             
             orta_lat, orta_lon = 39.1, 33.5
@@ -204,7 +209,6 @@ oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
 refresh_rate = st.sidebar.slider("Yenileme Frekansı (Saniye)", 5, 30, 10)
 threshold = st.sidebar.slider("AI Duyarlılık Eşiği (Threshold)", 0.10, 0.90, 0.25, step=0.05)
 goster_uav = st.sidebar.checkbox("🚁 Sadece İHA / Dron Vektörlerini Süz", value=False)
-sesli_alarm = st.sidebar.toggle("🔊 Taktik Siren Uyarısı", value=True)
 
 df = ucak_verisi_getir()
 
@@ -246,7 +250,6 @@ if not df.empty:
 
     st.markdown("---")
 
-    # SEKMELİ HARİTA BÖLÜMÜ (2D vs 3D)
     tab_2d, tab_3d = st.tabs(["📍 2D Taktik Harita", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
@@ -256,13 +259,37 @@ if not df.empty:
             for gf in HAVALIMANI_GEOFENCE:
                 folium.Circle(location=[gf["lat"], gf["lon"]], radius=gf["yarıcap_m"], color="#FF3344", fill=True, fill_opacity=0.2, popup=gf["ad"]).add_to(m)
 
+            # EKSİK OLAN DETAYLI BİLGİ KARTLARI BURAYA GERİ EKLENDİ!
             for _, row in df.iterrows():
                 is_risk = row['alarm']
                 is_uav = row['is_uav']
                 color = "#FF0033" if is_risk else ("#FFCC00" if is_uav else "#00FFCC")
+                icon_type = "🛸 İHA/DRON" if is_uav else "✈️ YOLCU UÇAĞI"
+                
+                popup_html = f"""
+                <div style='font-family: Arial, sans-serif; font-size: 13px; width: 230px; line-height: 1.6;'>
+                    <h4 style='margin:0 0 5px 0; color:#0055ff;'>{icon_type}: {row['ucak_id']}</h4>
+                    <b>🏢 Operatör:</b> {row['havayolu']}<br>
+                    <b>🛫 Kalkış:</b> {row['kalkis']}<br>
+                    <b>🛬 Varış:</b> {row['varis']}<br>
+                    <b>🆔 ICAO24:</b> {row['icao24']}<br>
+                    <hr style='margin:5px 0;'>
+                    <b>📈 İrtifa:</b> {row['irtifa_m']} m<br>
+                    <b>🚀 Hız:</b> {row['hiz_kmh']} km/h<br>
+                    <b>🧭 Yön:</b> {row['yon_deg']}°<br>
+                    <b>⚠️ Risk Skoru:</b> <span style='color:{color}; font-weight:bold;'>%{row['risk_skoru']*100:.1f}</span>
+                </div>
+                """
                 
                 folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=2.5 if is_risk else 1.2).add_to(m)
-                folium.CircleMarker(location=(row['lat'], row['lon']), radius=7 if is_uav else 5, color=color, fill=True, fill_color=color).add_to(m)
+                folium.CircleMarker(
+                    location=(row['lat'], row['lon']), 
+                    radius=7 if is_uav else 5, 
+                    color=color, 
+                    fill=True, 
+                    fill_color=color,
+                    popup=folium.Popup(popup_html, max_width=260)
+                ).add_to(m)
 
             st_folium(m, width=850, height=500, key="taktik_harita_2d", returned_objects=[])
 
@@ -281,7 +308,7 @@ if not df.empty:
         st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
         st.caption("Hava araçlarının yüksekliği (irtifası) 3 boyutlu sütun yükseklikleri ile modellenmiştir.")
         
-        # PyDeck 3D Katmanı
+        # 3D Haritada üzerine gelince (hover) çıkan kutucuk
         layer = pdk.Layer(
             "ColumnLayer",
             data=df,
@@ -302,8 +329,12 @@ if not df.empty:
             bearing=15
         )
 
-        r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Hava Aracı: {ucak_id}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
-        st.pydeck_chart(r)
+        r = pdk.Deck(
+            layers=[layer], 
+            initial_view_state=view_state, 
+            tooltip={"text": "Hava Aracı: {ucak_id}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h\nRisk Skoru: %{risk_skoru}"}
+        )
+        st.pydeck_chart(r, use_container_width=True)
 
     if oto_yenile:
         time.sleep(refresh_rate)
