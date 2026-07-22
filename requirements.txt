@@ -1,7 +1,9 @@
-streamlit  
-streamlit-folium  
-folium  
-pandas  
-numpy  
-scikit-learn  
-requests 
+streamlit
+streamlit-folium
+folium
+pandas
+numpy
+scikit-learn
+requests
+pydeck
+reportlab
