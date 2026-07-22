@@ -63,15 +63,6 @@ st.markdown("""
         border-radius: 8px;
         margin-top: 10px;
     }
-    .radio-box {
-        background-color: #0d1b2a;
-        border: 1px solid #00b4d8;
-        padding: 12px;
-        border-radius: 6px;
-        font-family: monospace;
-        color: #90e0ef;
-        margin-top: 10px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -345,6 +336,7 @@ def pdf_rapor_olustur(dataframe, riskliler):
 # --- SIDEBAR KONTROL PANELİ ---
 st.sidebar.title("🎛️ DEFENSE COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
+refresh_rate = st.sidebar.slider("Yenileme Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu", value=True)
 goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Göster", value=True)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK İHA/SİHA Filosunu Süz", value=False)
@@ -448,7 +440,6 @@ if not df.empty:
 
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
-        # SAĞ PANEL: TAKTİK İNCELEME & ACARS İLETİŞİM MERKEZİ
         with c2:
             st.subheader("🔎 UÇUŞ DETAYLARI & TAKTİK TELSİZ")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Vektörü Seçin:", df['ucak_id'].unique())
@@ -473,9 +464,8 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # --- TAKTİK TELSİZ / ACARS İLETİŞİM MODÜLÜ ---
                 st.markdown("---")
-                st.subheader("📻 ACARS / VHF TAKTİK TELSİZ MESAJA")
+                st.subheader("📻 ACARS / VHF TAKTİK TELSİZ MESAJI")
                 
                 hazir_komut = st.selectbox(
                     "Hazır Taktik ACARS Komutu Seçin:",
