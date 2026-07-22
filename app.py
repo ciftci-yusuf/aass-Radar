@@ -68,7 +68,7 @@ def ucak_verisi_getir():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            if "states" in data and data["states"] is not None:
+            if "states" in data and data["states"] is None:
                 for idx, state in enumerate(data["states"]):
                     callsign = state[1].strip() if state[1] else f"THY{100+idx}"
                     lon, lat = state[5], state[6]
@@ -106,7 +106,6 @@ def ucak_verisi_getir():
     except Exception:
         pass
 
-    # Eğer API limitindeyse kesintisiz dinamik akış üret
     if len(ucak_listesi) == 0:
         np.random.seed(int(time.time()) // 10)
         for i in range(35):
@@ -155,7 +154,6 @@ sesli_alarm = st.sidebar.toggle("🔊 Sesli İkaz (Siren)", value=True)
 
 df = ucak_verisi_getir()
 
-# --- MODEL & TAHMİN ---
 X = df[['lat', 'lon', 'irtifa_m', 'hiz_kmh', 'yon_deg', 'mesafe_deg']]
 y = [1 if row['mesafe_deg'] < 1.8 and (30 <= row['yon_deg'] <= 120) else 0 for _, row in df.iterrows()]
 
@@ -169,7 +167,6 @@ else:
 df['alarm'] = df['risk_skoru'] >= threshold
 riskli_df = df[df['alarm']].sort_values(by='risk_skoru', ascending=False)
 
-# --- SİSTEM UYARI HUD ---
 if len(riskli_df) > 0:
     for _, r in riskli_df.head(2).iterrows():
         st.toast(f"🚨 TEHDİT: {r['ucak_id']} ({r['havayolu']}) | {r['kalkis']} ➔ {r['varis']}", icon="⚠️")
@@ -189,7 +186,6 @@ if len(riskli_df) > 0:
 else:
     st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Hava sahasındaki tüm uçuşlar emniyetli rotalarda.</div>', unsafe_allow_html=True)
 
-# METRİKLER
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Takip Edilen Obje", len(df))
 m2.metric("Emniyetli Uçuş", len(df[~df['alarm']]))
