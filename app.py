@@ -12,6 +12,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
 # --- SAYFA YAPILANDIRMASI & MILITARY C4ISR TEMA ---
 st.set_page_config(
@@ -58,7 +59,6 @@ st.markdown("""
         font-size: 15px;
         margin-bottom: 20px;
     }
-    
     .flight-card {
         background-color: #07131d;
         border: 1px solid #00a8ff;
@@ -73,6 +73,7 @@ st.markdown("""
         padding: 15px;
         border-radius: 6px;
         box-shadow: 0 0 10px rgba(0,255,102,0.2);
+        font-family: monospace;
     }
     .login-box {
         background-color: #07131d;
@@ -96,8 +97,6 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
-
-    /* ALT SISTEMATIK YUVARLAK PPI RADAR EKRANI CSS */
     .bottom-radar-panel {
         background-color: #040c12;
         border: 1px solid #00ff66;
@@ -210,7 +209,7 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.rerun()
 
 st.markdown('<div class="hud-title">🛡️ MİLHAD-C4ISR <span style="font-size:16px; color:#8f9ca6; font-weight:normal;">| Entegre Hava Sahası, Radar & Deniz Savunma Komuta Merkezi</span></div>', unsafe_allow_html=True)
-st.caption("AESA Radar Füzyonu, Doğu Akdeniz Donanma Unsurları, Otonom Önleme Geometrisi & Taktik Telsiz")
+st.caption("AESA Radar Füzyonu, Doğu Akdeniz Donanma Unsurları, Otonom Önleme Geometrisi & Canlı İnsan Telsiz Bağlantısı")
 
 # UÇAK GEMİLERİ
 UCAK_GEMILERI = [
@@ -638,124 +637,27 @@ if not df.empty:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                if st.session_state["user_role"] == "Komutan":
-                    is_ghost_val = "true" if u['is_ghost'] or u['sinir_ihlal'] else "false"
-                    callsign_val = str(u['ucak_id'])
-                    speed_val = str(u['hiz_kmh'])
-                    alt_val = str(u['irtifa_m'])
-                    dep_val = str(u['kalkis'])
-                    arr_val = str(u['varis'])
-                    airline_val = str(u['havayolu'])
-                    squawk_val = str(u['icao24'])
-                    ihlal_val = "true" if u['sinir_ihlal'] else "false"
-                    
-                    voice_html = f"""
-                    <div class="voice-card">
-                        <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:8px; font-size:14px;">📻 AKILLI VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)</p>
-                        <p style="color:#aaa; font-size:12px; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp İstediğiniz Sorumuzu Sorun:</p>
-                        <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold; width:100%;">
-                            🔴 MANDALA BAS & TELSİZDEN TALİMAT VER / SORU SOR
-                        </button>
-                        <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
-                        <hr style="border-color:#00ff66;">
-                        <p style="color:#00ffcc; font-size:12px; font-weight:bold;">🔊 Operatör / Pilot Cevabı (VHF Cızırtılı):</p>
-                        <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px; font-size:12px;">
-                            [Telsiz Sessiz]
-                        </div>
-                    </div>
+                # --- CANLI GERÇEK İNSAN-İNSAN TELSIZ MODÜLÜ (WebRTC) ---
+                st.markdown(f"""
+                <div class="voice-card">
+                    <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:4px; font-size:14px;">🎙️ CANLI GERÇEK İNSAN TAKTİK TELSİZ HATTI (P2P WEBRTC)</p>
+                    <p style="color:#aaa; font-size:11px; margin-bottom:8px;">
+                        • <b>{st.session_state['user_name']}</b> olarak bağlısınız.<br>
+                        • Karşı taraftaki diğer yetkiliyle eş zamanlı canlı ses iletişimi kurmak için Start butonuna basın.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    <script>
-                    function playRadioBeepAndSpeak(text) {{
-                        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        var osc = audioCtx.createOscillator();
-                        var gain = audioCtx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-                        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.start();
-                        osc.stop(audioCtx.currentTime + 0.15);
+                rtc_config = RTCConfiguration(
+                    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+                )
 
-                        setTimeout(function() {{
-                            if ('speechSynthesis' in window) {{
-                                window.speechSynthesis.cancel();
-                                var msg = new SpeechSynthesisUtterance();
-                                msg.text = text;
-                                msg.lang = 'tr-TR';
-                                msg.rate = 1.0;
-                                msg.pitch = 0.85;
-                                window.speechSynthesis.speak(msg);
-                            }}
-                        }}, 200);
-                    }}
-
-                    function startSpeech() {{
-                        var status = document.getElementById('speechStatus');
-                        var reply = document.getElementById('replyBox');
-                        var isGhost = {is_ghost_val};
-                        var target = "{callsign_val}";
-                        var speed = "{speed_val}";
-                        var alt = "{alt_val}";
-                        var dep = "{dep_val}";
-                        var arr = "{arr_val}";
-                        var airline = "{airline_val}";
-                        var squawk = "{squawk_val}";
-                        var isIhlal = {ihlal_val};
-
-                        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                            status.innerHTML = "⚠️ Tarayıcınız ses tanımayı desteklemiyor. Chrome veya Edge kullanın.";
-                            return;
-                        }}
-
-                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                        var recognition = new SpeechRecognition();
-                        recognition.lang = 'tr-TR';
-
-                        status.innerHTML = "🎙️ TELSİZ KANALI AÇIK... Lütfen konuşun!";
-                        recognition.start();
-
-                        recognition.onresult = function(event) {{
-                            var transcript = event.results[0][0].transcript;
-                            status.innerHTML = "<b>Söylenen Mesaj:</b> '" + transcript + "'";
-                            var lower = transcript.toLowerCase();
-                            
-                            setTimeout(function() {{
-                                var answer = "";
-                                if (isGhost) {{
-                                    answer = "Cızırtı... Yanıt alınamadı. Yabancı Unsur İhlal Sinyali Vermiyor!";
-                                }} else if (lower.includes("hız") || lower.includes("hızı") || lower.includes("kaçla")) {{
-                                    answer = "Komutanım, " + target + " kodlu unsurun anlık hızı saatte " + speed + " kilometredir.";
-                                }} else if (lower.includes("irtifa") || lower.includes("yükseklik") || lower.includes("kaç metre")) {{
-                                    answer = "Komutanım, " + target + " radar ölçümünde irtifası " + alt + " metredir.";
-                                }} else if (lower.includes("nereden") || lower.includes("kalktı") || lower.includes("kalkış")) {{
-                                    answer = "Komutanım, unsurun kalkış yaptığı bölge " + dep + " olarak kilitlenmiştir.";
-                                }} else if (lower.includes("nereye") || lower.includes("varış") || lower.includes("gidiyor")) {{
-                                    answer = "Komutanım, " + target + " unsurunun varış noktası " + arr + " bölgesidir.";
-                                }} else if (lower.includes("kim") || lower.includes("birlik") || lower.includes("filo") || lower.includes("havayolu")) {{
-                                    answer = "Komutanım, bu hava aracı " + airline + " tarafından işletilmektedir.";
-                                }} else if (lower.includes("ihlal") || lower.includes("tehdit") || lower.includes("durum") || lower.includes("güvenli mi")) {{
-                                    if (isIhlal) {{
-                                        answer = "🚨 DİKKAT KOMUTANIM! " + target + " milli hava sahamızı ihlal etmektedir! Önleme jeti hazır!";
-                                    }} else {{
-                                        answer = "Komutanım, " + target + " unsuru emniyetli rotada seyretmektedir, tehdit oluşturmuyor.";
-                                    }}
-                                }} else if (lower.includes("kod") || lower.includes("transponder") || lower.includes("squawk")) {{
-                                    answer = "Komutanım, hedef transponder kodu " + squawk + " olarak aktiftir.";
-                                }} else {{
-                                    answer = "Anlaşıldı komutanım. '" + transcript + "' talimatınız radar merkezince kopyalandı, gereği yapılıyor.";
-                                }}
-                                
-                                reply.innerHTML = "✅ " + answer;
-                                playRadioBeepAndSpeak(answer);
-                            }}, 600);
-                        }};
-                    }}
-                    </script>
-                    """
-                    st.components.v1.html(voice_html, height=270)
-                else:
-                    st.warning("🔒 Telsiz kanalı üzerinden talimat verme yetkisi yalnızca 'Komutan' rolüne aittir.")
+                webrtc_streamer(
+                    key="canli-insan-telsizi",
+                    mode=WebRtcMode.SENDRECV,
+                    rtc_configuration=rtc_config,
+                    media_stream_constraints={"video": False, "audio": True},
+                )
 
     with tab_3d:
         st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
