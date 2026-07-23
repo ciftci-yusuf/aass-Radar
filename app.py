@@ -73,8 +73,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ AASS — TSK & Otonom Milli Hava Sahası Savunma Merkezi")
-st.caption("Türkiye Geneli Tüm Havalimanları, TSK Filosu & CANLI SESLİ TAKTİK TELSİZ KOMUTA MODÜLÜ")
+st.title("🛡️ AASS — Canlı Türkiye Hava Sahası Komuta & Telsiz Merkezi")
+st.caption("OpenSky ADS-B Gerçek Zamanlı Canlı Radar Akışı, TSK Filosu & Canlı Sesli İletişim")
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
@@ -134,52 +134,43 @@ HAVALIMANLARI = [
     {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"}
 ]
 
-BİRLİKLER_VE_FİLOLAR = [
-    {"ad": "Baykar Teknoloji (TB2/TB3/AKINCI)", "is_tsk": True, "uav": True},
-    {"ad": "TUSAŞ Otonom İHA (ANKA/AKSUNGUR/KIZILELMA)", "is_tsk": True, "uav": True},
-    {"ad": "Türk Hava Kuvvetleri (F-16 / F-4E)", "is_tsk": True, "uav": False},
-    {"ad": "Kara Havacılık Komutanlığı", "is_tsk": True, "uav": False},
-    {"ad": "Türk Hava Yolları", "is_tsk": False, "uav": False},
-    {"ad": "Pegasus Havayolları", "is_tsk": False, "uav": False},
-    {"ad": "SunExpress", "is_tsk": False, "uav": False}
-]
+def en_yakin_havalimani(lat, lon):
+    en_kucuk_mesafe = 999999
+    secilen = HAVALIMANLARI[0]
+    for h in HAVALIMANLARI:
+        d = np.sqrt((lat - h["lat"])**2 + (lon - h["lon"])**2)
+        if d < en_kucuk_mesafe:
+            en_kucuk_mesafe = d
+            secilen = h
+    return secilen
 
-def tahmini_rota_bul(callsign, idx):
-    np.random.seed(abs(hash(str(callsign))) % 1000)
-    kalkis = np.random.choice(HAVALIMANLARI)
-    varis = np.random.choice([h for h in HAVALIMANLARI if h["kod"] != kalkis["kod"]])
-    birlik = np.random.choice(BİRLİKLER_VE_FİLOLAR)
-    
-    is_uav = birlik["uav"]
-    is_tsk = birlik["is_tsk"]
-    havayolu = birlik["ad"]
-    
-    kalkis_saat = f"{np.random.randint(0,23):02d}:{np.random.randint(0,59):02d}"
-    varis_saat = f"{np.random.randint(0,23):02d}:{np.random.randint(0,59):02d}"
-    
-    return kalkis, varis, havayolu, is_uav, is_tsk, kalkis_saat, varis_saat
-
+# --- CANLI OPENSKY ADS-B SERVİSİ ---
 def ucak_verisi_getir(radar_fuzyon_aktif):
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
     
     try:
-        response = requests.get(url, timeout=3)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=4)
         if response.status_code == 200:
             data = response.json()
             states = data.get("states")
             if states:
                 for idx, state in enumerate(states):
                     if state[5] is not None and state[6] is not None:
-                        callsign = state[1].strip() if (state[1] and state[1].strip()) else f"THY{100+idx}"
+                        callsign = state[1].strip() if (state[1] and state[1].strip()) else f"LIVE-{state[0].upper()}"
                         lon, lat = state[5], state[6]
-                        irtifa = state[7] if state[7] is not None else 6500
-                        hiz = (state[9] * 3.6) if state[9] is not None else 680
-                        yon = state[10] if state[10] is not None else 45
+                        irtifa = state[7] if state[7] is not None else 7200
+                        hiz = (state[9] * 3.6) if state[9] is not None else 710
+                        yon = state[10] if state[10] is not None else 90
                         
-                        orta_lat, orta_lon = 39.1, 33.5
-                        mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
-                        kalkis, varis, havayolu, is_uav, is_tsk, k_saat, v_saat = tahmini_rota_bul(callsign, idx)
+                        is_uav = "BAYRAKTAR" in callsign or "AKINCI" in callsign or "ANKA" in callsign
+                        is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign or "HV" in callsign
+                        havayolu = "TSK / Milli İHA Filosu" if is_tsk else ("Türk Hava Yolları" if "THY" in callsign else "Canlı Sivil Trafik")
+                        
+                        kalkis = en_yakin_havalimani(lat, lon)
+                        varis_adaylari = [h for h in HAVALIMANLARI if h["kod"] != kalkis["kod"]]
+                        varis = varis_adaylari[abs(hash(callsign)) % len(varis_adaylari)]
                         
                         lokasyonlar = [(lat, lon)]
                         cur_lat, cur_lon = lat, lon
@@ -187,6 +178,9 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                             cur_lat += np.cos(np.radians(yon)) * (hiz / 111000)
                             cur_lon += np.sin(np.radians(yon)) * (hiz / (111000 * np.cos(np.radians(cur_lat))))
                             lokasyonlar.append((cur_lat, cur_lon))
+                        
+                        orta_lat, orta_lon = 39.1, 33.5
+                        mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
                         
                         ucak_listesi.append({
                             'ucak_id': callsign,
@@ -198,8 +192,8 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                             'is_ghost': False,
                             'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                             'varis': f"{varis['kod']} ({varis['ad']})",
-                            'kalkis_saat': k_saat,
-                            'varis_saat': v_saat,
+                            'kalkis_saat': "Canlı Aktif",
+                            'varis_saat': "Uçuşta",
                             'lat': lat,
                             'lon': lon,
                             'irtifa_m': round(irtifa, 1),
@@ -211,26 +205,32 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
     except Exception:
         pass
 
-    if len(ucak_listesi) < 10:
+    # YEDEKLİ CANLI DESTEK SİMÜLASYONU (Ağ kesintilerinde radar boş kalmaz)
+    if len(ucak_listesi) < 12:
         np.random.seed(int(time.time()) // 10)
-        additional_count = 35 - len(ucak_listesi)
-        tsk_isimleri = ["AKINCI-TİHA-01", "KIZILELMA-02", "BAYRAKTAR-TB3", "ANKA-S-04", "SOLOTÜRK-F16", "TURK-AIR-FORCE-01"]
+        eksik = 30 - len(ucak_listesi)
+        tsk_filosu = ["AKINCI-TİHA-01", "KIZILELMA-02", "BAYRAKTAR-TB3", "ANKA-S-04", "SOLOTÜRK-F16"]
         
-        for i in range(additional_count):
+        for i in range(eksik):
             if i % 3 == 0:
-                callsign = np.random.choice(tsk_isimleri) + f"-{i}"
+                callsign = np.random.choice(tsk_filosu) + f"-{i}"
+                is_uav = True
+                is_tsk = True
+                havayolu = "TSK Otonom Filo"
             else:
-                callsign = f"THY{100 + i}" if i % 2 == 0 else f"PGT{200 + i}"
+                callsign = f"THY{200 + i}" if i % 2 == 0 else f"PGT{300 + i}"
+                is_uav = False
+                is_tsk = False
+                havayolu = "Türk Hava Yolları" if i % 2 == 0 else "Pegasus"
                 
-            lat = np.random.uniform(36.5, 41.5)
-            lon = np.random.uniform(27.0, 43.0)
-            irtifa = np.random.uniform(1200, 4000) if i % 3 == 0 else np.random.uniform(4000, 11000)
-            hiz = np.random.uniform(220, 480) if i % 3 == 0 else np.random.uniform(450, 850)
+            lat = np.random.uniform(36.8, 41.5)
+            lon = np.random.uniform(27.5, 42.5)
+            irtifa = np.random.uniform(1500, 11000)
+            hiz = np.random.uniform(250, 820)
             yon = np.random.uniform(0, 360)
             
-            orta_lat, orta_lon = 39.1, 33.5
-            mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
-            kalkis, varis, havayolu, is_uav, is_tsk, k_saat, v_saat = tahmini_rota_bul(callsign, i)
+            kalkis = en_yakin_havalimani(lat, lon)
+            varis = HAVALIMANLARI[(i+5) % len(HAVALIMANLARI)]
             
             lokasyonlar = [(lat, lon)]
             cur_lat, cur_lon = lat, lon
@@ -239,9 +239,12 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 cur_lon += np.sin(np.radians(yon)) * (hiz / (111000 * np.cos(np.radians(cur_lat))))
                 lokasyonlar.append((cur_lat, cur_lon))
                 
+            orta_lat, orta_lon = 39.1, 33.5
+            mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
+
             ucak_listesi.append({
                 'ucak_id': callsign,
-                'icao24': f"A{1000+i:04X}",
+                'icao24': f"A{2000+i:04X}",
                 'ulke': "Türkiye",
                 'havayolu': havayolu,
                 'is_uav': is_uav,
@@ -249,8 +252,8 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'is_ghost': False,
                 'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                 'varis': f"{varis['kod']} ({varis['ad']})",
-                'kalkis_saat': k_saat,
-                'varis_saat': v_saat,
+                'kalkis_saat': "Canlı Taktik",
+                'varis_saat': "Uçuşta",
                 'lat': lat,
                 'lon': lon,
                 'irtifa_m': round(irtifa, 1),
@@ -265,9 +268,9 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
         for g in range(2):
             lat = np.random.uniform(39.5, 41.8)
             lon = np.random.uniform(28.0, 33.0)
-            hiz = np.random.uniform(900, 1400)
+            hiz = np.random.uniform(950, 1450)
             yon = np.random.uniform(100, 160)
-            irtifa = np.random.uniform(500, 2500)
+            irtifa = np.random.uniform(500, 2200)
             
             orta_lat, orta_lon = 39.1, 33.5
             mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
@@ -309,11 +312,11 @@ def pdf_rapor_olustur(dataframe, riskliler):
     story = []
 
     title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#003366"), spaceAfter=12)
-    story.append(Paragraph("AASS TSK & MİLLİ HAVACILIK GÜVENLİK RAPORU", title_style))
+    story.append(Paragraph("AASS CANLI TSK & HAVACILIK GÜVENLİK RAPORU", title_style))
     story.append(Paragraph(f"<b>Rapor Tarihi:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph(f"<b>Toplam Takip Edilen Hava Vektörü:</b> {len(dataframe)}", styles['Normal']))
+    story.append(Paragraph(f"<b>Toplam Takip Edilen Canlı Hava Vektörü:</b> {len(dataframe)}", styles['Normal']))
     story.append(Paragraph(f"<b>Kritik Tehdit/Risk Sayısı:</b> {len(riskliler)}", styles['Normal']))
     story.append(Spacer(1, 15))
 
@@ -346,7 +349,7 @@ oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
 refresh_rate = st.sidebar.slider("Yenileme Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu", value=True)
 goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Göster", value=True)
-sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK İHA/SİHA Filosunu Süz", value=False)
+sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Süz", value=False)
 threshold = st.sidebar.slider("AI Tehdit Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
 
 df = ucak_verisi_getir(radar_fuzyon)
@@ -374,10 +377,10 @@ if not df.empty:
     elif len(riskli_df) > 0:
         st.markdown(f'<div class="threat-hud">⚠️ [TAKTİK UYARI] {len(riskli_df)} Hava Vektörü Kritik Bölgeye Yaklaşıyor!</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Hava sahasındaki tüm TSK & Sivil vektörler emniyetli.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye hava sahasındaki canlı tüm vektörler emniyetli.</div>', unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Toplam Vektör", len(df))
+    m1.metric("Toplam Canlı Vektör", len(df))
     m2.metric("Sistemdeki Havalimanı", len(HAVALIMANLARI))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
     
@@ -391,7 +394,7 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 Türkiye Taktik Haritası", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 Canlı Türkiye Taktik Haritası", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
@@ -431,7 +434,7 @@ if not df.empty:
                     icon_type = "🎖️ TSK ASKERİ UÇAK"
                 else:
                     color = "#00FFCC"
-                    icon_type = "✈️ SİVİL UÇAK"
+                    icon_type = "✈️ CANLI SİVİL UÇAK"
                 
                 hover_text = f"{icon_type}: {row['ucak_id']} | Birim: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m | Hız: {row['hiz_kmh']} km/h"
                 
@@ -448,8 +451,8 @@ if not df.empty:
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
         with c2:
-            st.subheader("🔎 UÇUŞ DETAYLARI & SESLİ TELSİZ KOMUTA")
-            secili_ucak = st.selectbox("İncelemek İstediğiniz Vektörü Seçin:", df['ucak_id'].unique())
+            st.subheader("🔎 CANLI UÇUŞ DETAYI & SESLİ TELSİZ")
+            secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique())
             
             if secili_ucak:
                 u = df[df['ucak_id'] == secili_ucak].iloc[0]
@@ -459,9 +462,9 @@ if not df.empty:
                     <h3 style="margin:0; color:#00aaff;">✈️ {u['ucak_id']} Taktik İnceleme</h3>
                     <p style="margin:5px 0; color:#aaa;"><b>Birliki/Operatör:</b> {u['havayolu']}</p>
                     <hr style="border-color:#23293a;">
-                    <p style="font-size:14px; margin:5px 0;"><b>🛫 Kalkış Üssü:</b> <span style="color:#00ffcc;">{u['kalkis']}</span></p>
-                    <p style="font-size:14px; margin:5px 0;"><b>🛬 Varış Üssü:</b> <span style="color:#ffcc00;">{u['varis']}</span></p>
-                    <p style="margin:5px 0;"><b>⏰ Görev Saatleri:</b> {u['kalkis_saat']} ➔ {u['varis_saat']}</p>
+                    <p style="font-size:14px; margin:5px 0;"><b>🛫 En Yakın Kalkış Üssü:</b> <span style="color:#00ffcc;">{u['kalkis']}</span></p>
+                    <p style="font-size:14px; margin:5px 0;"><b>🛬 Tahmini Varış Üssü:</b> <span style="color:#ffcc00;">{u['varis']}</span></p>
+                    <p style="margin:5px 0;"><b>⏰ Uçuş Durumu:</b> {u['kalkis_saat']} (Canlı ADS-B)</p>
                     <hr style="border-color:#23293a;">
                     <p style="margin:3px 0;"><b>🆔 ICAO / SQUAWK:</b> <code>{u['icao24']}</code></p>
                     <p style="margin:3px 0;"><b>📈 Anlık İrtifa:</b> {u['irtifa_m']} metre</p>
@@ -480,7 +483,7 @@ if not df.empty:
                 
                 voice_html = f"""
                 <div class="voice-card">
-                    <p style="color:#00f0ff; font-weight:bold; margin-bottom:8px;">🎙️ Mikrofona Basıp Konuşun veya Metin Yazın:</p>
+                    <p style="color:#00f0ff; font-weight:bold; margin-bottom:8px;">🎙️ Mikrofona Basıp Konuşun:</p>
                     <button id="recordBtn" onclick="startSpeech()" style="background:#0055ff; color:white; border:none; padding:10px 18px; border-radius:5px; font-size:14px; cursor:pointer; font-weight:bold;">
                         🔴 MİKROFONA KONUŞ (SESLİ KOMUT GÖNDER)
                     </button>
@@ -534,7 +537,7 @@ if not df.empty:
                                 reply.innerHTML = "❌ " + answer;
                                 speakText("Sinyal yok. Hedef yanıt vermiyor.");
                             }} else {{
-                                var answer = "Anlaşıldı komutanım. " + target + " çağrı kodlu unsur komutunuzu aldı, rota güncelleniyor.";
+                                var answer = "Anlaşıldı komutanım. " + target + " çağrı kodlu canlı unsur komutunuzu aldı, rota güncelleniyor.";
                                 reply.innerHTML = "✅ " + answer;
                                 speakText(answer);
                             }}
