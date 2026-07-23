@@ -97,15 +97,63 @@ st.markdown("""
         margin-top: 10px;
     }
 
-    /* ALT SISTEMATIK RADAR KONSOLU */
+    /* ALT SISTEMATIK YUVARLAK PPI RADAR EKRANI CSS */
     .bottom-radar-panel {
         background-color: #040c12;
         border: 1px solid #00ff66;
         border-radius: 6px;
-        padding: 16px;
-        margin-top: 25px;
+        padding: 14px;
+        margin-top: 15px;
         box-shadow: 0 0 15px rgba(0,255,102,0.2);
         font-family: 'Courier New', monospace;
+    }
+    .radar-scope-box {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, #01210f 0%, #020b08 100%);
+        border: 2px solid #00ff66;
+        border-radius: 50%;
+        margin: 0 auto;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0,255,102,0.3);
+    }
+    .radar-scope-ring-1 {
+        position: absolute; top: 25%; left: 25%; width: 50%; height: 50%;
+        border: 1px dashed rgba(0,255,102,0.4); border-radius: 50%;
+    }
+    .radar-scope-ring-2 {
+        position: absolute; top: 10%; left: 10%; width: 80%; height: 80%;
+        border: 1px solid rgba(0,255,102,0.3); border-radius: 50%;
+    }
+    .radar-scope-cross-h {
+        position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,255,102,0.3);
+    }
+    .radar-scope-cross-v {
+        position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(0,255,102,0.3);
+    }
+    .radar-scope-sweep {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, rgba(0, 255, 102, 0.55) 0deg, transparent 55deg);
+        animation: radarSpin 2.5s linear infinite;
+    }
+    @keyframes radarSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .radar-blip-target {
+        position: absolute; top: 32%; left: 62%; width: 7px; height: 7px;
+        background: #ff0055; border-radius: 50%; box-shadow: 0 0 8px #ff0055;
+        animation: blipPulse 1.2s infinite alternate;
+    }
+    .radar-blip-friendly {
+        position: absolute; top: 68%; left: 28%; width: 6px; height: 6px;
+        background: #00ff66; border-radius: 50%; box-shadow: 0 0 6px #00ff66;
+    }
+    @keyframes blipPulse {
+        from { opacity: 0.3; transform: scale(0.8); }
+        to { opacity: 1.0; transform: scale(1.3); }
     }
     .radar-log-box {
         background-color: #010508;
@@ -113,8 +161,8 @@ st.markdown("""
         padding: 10px;
         border-radius: 4px;
         color: #00ff66;
-        font-size: 12px;
-        height: 120px;
+        font-size: 11px;
+        height: 140px;
         overflow-y: auto;
     }
     </style>
@@ -695,29 +743,46 @@ if not df.empty:
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
         st.pydeck_chart(r, use_container_width=True)
 
-    # --- EN ALTA EKLENEN SİSTEMATİK RADAR & TELEMETRİ İZLEME PANELİ ---
+    # --- EN ALTA EKLENEN CANLI GÖRSEL PPI RADAR EKRANI & KONSOL ---
     st.markdown("---")
-    st.subheader("📡 SİSTEMATİK AESA RADAR & TELEMETRİ KONSOLU")
+    st.subheader("📡 CANLI AESA RADAR SCOPE & SİSTEMATİK TELEMETRİ KONSOLU")
     
-    r_col1, r_col2 = st.columns([1.5, 2.5])
+    r_col1, r_col2, r_col3 = st.columns([1.2, 1.5, 2.2])
     
     with r_col1:
         st.markdown("""
+        <div class="bottom-radar-panel" style="text-align:center;">
+            <h4 style="color:#00ff66; margin-top:0; font-size:13px;">📡 360° CANLI PPI RADAR SCOPE</h4>
+            <div class="radar-scope-box">
+                <div class="radar-scope-ring-1"></div>
+                <div class="radar-scope-ring-2"></div>
+                <div class="radar-scope-cross-h"></div>
+                <div class="radar-scope-cross-v"></div>
+                <div class="radar-scope-sweep"></div>
+                <div class="radar-blip-target"></div>
+                <div class="radar-blip-friendly"></div>
+            </div>
+            <p style="color:#8f9ca6; font-size:10px; margin-top:8px; margin-bottom:0;">X-BAND AESA FREQUENCY LOCK</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with r_col2:
+        st.markdown("""
         <div class="bottom-radar-panel">
-            <h4 style="color:#00ff66; margin-top:0;">📊 Radar İstatistiki Frekanslar</h4>
-            <p style="margin:4px 0;">• <b>AESA Tarama Frekansı:</b> 9.4 GHz (X-Band)</p>
-            <p style="margin:4px 0;">• <b>Tarama Hızı:</b> 120 RPM (Tur/Dakika)</p>
-            <p style="margin:4px 0;">• <b>Aktif Radar İstasyon Sayısı:</b> 5 Mevzii (Sinyal Tam Kilit)</p>
-            <p style="margin:4px 0;">• <b>Veri Akışı / Gecikme:</b> ADS-B Realtime (< 120 ms)</p>
-            <p style="margin:4px 0;">• <b>AESA Füzyon Modu:</b> Aktif İhbar & Erken Tespit</p>
+            <h4 style="color:#00ff66; margin-top:0; font-size:13px;">📊 Radar İstatistiki Frekanslar</h4>
+            <p style="margin:4px 0; font-size:11px;">• <b>AESA Tarama Frekansı:</b> 9.4 GHz (X-Band)</p>
+            <p style="margin:4px 0; font-size:11px;">• <b>Tarama Hızı:</b> 120 RPM (Tur/Dakika)</p>
+            <p style="margin:4px 0; font-size:11px;">• <b>Aktif Radar Mevzii:</b> 5 İstasyon Kilitli</p>
+            <p style="margin:4px 0; font-size:11px;">• <b>Gecikme / Akış:</b> ADS-B Realtime (< 120 ms)</p>
+            <p style="margin:4px 0; font-size:11px;">• <b>Erken Tespit:</b> Otonom İhbar Aktif</p>
         </div>
         """, unsafe_allow_html=True)
         
-    with r_col2:
+    with r_col3:
         curr_time = time.strftime('%H:%M:%S')
         st.markdown(f"""
         <div class="bottom-radar-panel">
-            <h4 style="color:#00ff66; margin-top:0;">📜 Canlı Radar Sistem Konsolu [Sistem Saati: {curr_time}]</h4>
+            <h4 style="color:#00ff66; margin-top:0; font-size:13px;">📜 Canlı Radar Sistem Konsolu [{curr_time}]</h4>
             <div class="radar-log-box">
                 [{curr_time}] [RADAR-KURECIK] X-Band Erken ihbar taraması aktif. Sinyal kalitesi: %99.8<br>
                 [{curr_time}] [MİLHAD-C4ISR] OpenSky & AESA füzyon katmanı senkronize edildi.<br>
