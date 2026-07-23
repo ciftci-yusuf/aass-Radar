@@ -35,16 +35,22 @@ st.markdown("""
         font-weight: bold;
     }
     .threat-hud {
-        background: linear-gradient(90deg, #400000 0%, #100000 100%);
-        color: #ff3344;
-        padding: 14px 24px;
-        border-radius: 4px;
-        border: 1px solid #ff3344;
-        box-shadow: 0 0 15px rgba(255,51,68,0.4);
+        background: linear-gradient(90deg, #721c24 0%, #2c0b0e 100%);
+        color: #ffffff;
+        padding: 16px 24px;
+        border-radius: 6px;
+        border: 2px solid #ff0055;
+        box-shadow: 0 0 25px rgba(255,0,85,0.6);
         font-family: monospace;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         margin-bottom: 20px;
+        animation: pulseAlert 1.5s infinite;
+    }
+    @keyframes pulseAlert {
+        0% { box-shadow: 0 0 10px rgba(255,0,85,0.4); }
+        50% { box-shadow: 0 0 30px rgba(255,0,85,0.9); }
+        100% { box-shadow: 0 0 10px rgba(255,0,85,0.4); }
     }
     .status-good {
         background: linear-gradient(90deg, #002b11 0%, #001006 100%);
@@ -180,10 +186,10 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — UÇAK GEMİSİ & RADAR DEFENSE CENTER</h1>', unsafe_allow_html=True)
-st.caption("Doğu Akdeniz Uçak Gemisi Görev Grupları, AESA Radar Füzyonu & Taktik Telsiz")
+st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — SİNİR ERKEN İHBAR & ÖNLEME MERKEZİ</h1>', unsafe_allow_html=True)
+st.caption("Milli Sınır Geofence İhlal Dedektörü, Yabancı Savaş Uçağı/Uçak Gemisi Erken İhbar")
 
-# --- GERÇEK / CANLI UÇAK GEMİLERİ VE DONANMA UNSURLARI ---
+# UÇAK GEMİLERİ KATMANI
 UCAK_GEMILERI = [
     {
         "kod": "TCG-ANADOLU",
@@ -191,28 +197,18 @@ UCAK_GEMILERI = [
         "ülke": "Türkiye",
         "lat": 36.520,
         "lon": 30.750,
-        "konuşlu": "Bayraktar TB3, KIZILELMA, AH-1W SuperCobra",
+        "konuşlu": "Bayraktar TB3, KIZILELMA",
         "menzil_km": 200,
         "is_friendly": True
     },
     {
         "kod": "CVN-78-FORD",
-        "ad": "USS Gerald R. Ford (CVN-78) Aircraft Carrier",
+        "ad": "USS Gerald R. Ford (CVN-78) Carrier Group",
         "ülke": "ABD",
-        "lat": 34.800,
-        "lon": 32.400,
-        "konuşlu": "F-35C Lightning II, F/A-18E Super Hornet, EA-18G Growler",
+        "lat": 35.800,
+        "lon": 28.100, # Türkiye kara sularına/yakın sınıra yaklaşma simülasyonu
+        "konuşlu": "F-35C, F/A-18E Super Hornet",
         "menzil_km": 350,
-        "is_friendly": False
-    },
-    {
-        "kod": "R91-DEGAULLE",
-        "ad": "Charles de Gaulle (R91) Carrier Strike Group",
-        "ülke": "Fransa",
-        "lat": 35.200,
-        "lon": 28.500,
-        "konuşlu": "Rafale M, E-2C Hawkeye",
-        "menzil_km": 280,
         "is_friendly": False
     }
 ]
@@ -237,6 +233,10 @@ HAVALIMANLARI = [
     {"kod": "AJU-5", "ad": "5. Ana Jet Üssü (Merzifon)", "lat": 40.829, "lon": 35.521, "tip": "🎖️ TSK Askeri Üs"},
     {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK/NATO Üssü"}
 ]
+
+# MİLLİ SINIR GEONFENCE KONTROLÜ (TÜRKIYE KOORDİNAT POLİGONU İÇİNDE Mİ?)
+def turkiye_sinirlari_icinde_mi(lat, lon):
+    return (35.8 <= lat <= 42.1) and (25.6 <= lon <= 44.8)
 
 def en_yakin_havalimani(lat, lon):
     en_kucuk = 999999
@@ -264,7 +264,7 @@ def onleme_noktasi_hesapla(target_lat, target_lon, target_speed, target_heading,
     return intercept_lat, intercept_lon, round(t_intercept, 1)
 
 def ucak_verisi_getir(radar_fuzyon_aktif):
-    url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
+    url = "https://opensky-network.org/api/states/all?lamin=35.0&lomin=25.0&lamax=42.5&lomax=45.0"
     ucak_listesi = []
     
     try:
@@ -280,10 +280,13 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                         irtifa = state[7] if state[7] is not None else 7200
                         hiz = (state[9] * 3.6) if state[9] is not None else 710
                         yon = state[10] if state[10] is not None else 90
+                        ulke = state[2] if state[2] else "Bilinmiyor"
                         
                         is_uav = "BAYRAKTAR" in callsign or "AKINCI" in callsign or "ANKA" in callsign
-                        is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign
-                        havayolu = "TSK / Milli Filo" if is_tsk else "Sivil Hava Trafiği"
+                        is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign or ulke == "Turkey"
+                        
+                        # TÜRKİYE HARİÇ YABANCI SAVAŞ/TEHDİT UNUTU MU?
+                        is_foreign_threat = (not is_tsk) and ("F16" in callsign or "F35" in callsign or "MIL" in callsign or "NAVY" in callsign or "NATO" in callsign)
                         
                         kalkis = en_yakin_havalimani(lat, lon)
                         varis = HAVALIMANLARI[(idx+2) % len(HAVALIMANLARI)]
@@ -297,14 +300,17 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                             
                         orta_lat, orta_lon = 39.1, 33.5
                         mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
+                        sinir_ihlal = turkiye_sinirlari_icinde_mi(lat, lon) and is_foreign_threat
                         
                         ucak_listesi.append({
                             'ucak_id': callsign,
                             'icao24': str(state[0]).upper(),
-                            'havayolu': havayolu,
+                            'havayolu': f"{ulke} Askeri/Sivil" if not is_tsk else "TSK / Milli Filo",
                             'is_uav': is_uav,
                             'is_tsk': is_tsk,
                             'is_ghost': False,
+                            'is_foreign_threat': is_foreign_threat,
+                            'sinir_ihlal': sinir_ihlal,
                             'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                             'varis': f"{varis['kod']} ({varis['ad']})",
                             'lat': lat,
@@ -327,9 +333,11 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             if i % 3 == 0:
                 callsign = np.random.choice(tsk_filosu) + f"-{i}"
                 is_uav, is_tsk, havayolu = True, True, "TSK Otonom Filo"
+                is_foreign_threat = False
             else:
                 callsign = f"THY{200 + i}" if i % 2 == 0 else f"PGT{300 + i}"
                 is_uav, is_tsk, havayolu = False, False, "Türk Hava Yolları"
+                is_foreign_threat = False
                 
             lat = np.random.uniform(36.8, 41.5)
             lon = np.random.uniform(27.5, 42.5)
@@ -357,6 +365,8 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'is_uav': is_uav,
                 'is_tsk': is_tsk,
                 'is_ghost': False,
+                'is_foreign_threat': False,
+                'sinir_ihlal': False,
                 'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                 'varis': f"{varis['kod']} ({varis['ad']})",
                 'lat': lat,
@@ -368,11 +378,12 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'lokasyonlar': lokasyonlar
             })
 
+    # YABANCI SAVAŞ UÇAĞI MİLLİ SINIR İHLAL SİMÜLASYONU (TÜRKIYE HARİÇ DÜŞMAN UNSUR)
     if radar_fuzyon_aktif:
         np.random.seed(int(time.time()) // 5)
         for g in range(1):
-            lat, lon = 40.2, 31.8
-            hiz, yon, irtifa = 1100, 120, 1800
+            lat, lon = 38.2, 26.8 # Ege / İzmir Sınırı Yaklaşması
+            hiz, yon, irtifa = 1450, 85, 2100 # Türkiye sınırına doğru supersonic hızla giren yabancı unsur
             
             orta_lat, orta_lon = 39.1, 33.5
             mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
@@ -385,14 +396,16 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 lokasyonlar.append((cur_lat, cur_lon))
 
             ucak_listesi.append({
-                'ucak_id': "TEHDİT-GHOST-ALPHA",
-                'icao24': "NO-SQUAWK",
-                'havayolu': "⚠️ UNIDENTIFIED HOSTILE",
+                'ucak_id': "YABANCI-MILITARY-X",
+                'icao24': "NO-TRANS-TR",
+                'havayolu': "⚠️ YABANCI DÜŞMAN SAVAŞ UÇAĞI",
                 'is_uav': False,
                 'is_tsk': False,
                 'is_ghost': True,
-                'kalkis': "Bilinmiyor",
-                'varis': "Ankara Esenboğa Yaklaşması",
+                'is_foreign_threat': True,
+                'sinir_ihlal': True,
+                'kalkis': "Yabancı Üs / Doğu Akdeniz Fleet",
+                'varis': "Milli Hava Sahası İhlal Rotası",
                 'lat': lat,
                 'lon': lon,
                 'irtifa_m': round(irtifa, 1),
@@ -411,16 +424,16 @@ def pdf_rapor_olustur(dataframe, riskliler):
     story = []
 
     title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#003366"), spaceAfter=12)
-    story.append(Paragraph("AASS RESMİ TSK TAKTİK MÜDAHALE RAPORU", title_style))
+    story.append(Paragraph("AASS RESMİ TSK MİLLİ SINIR İHLAL RAPORU", title_style))
     story.append(Paragraph(f"<b>Rapor Tarihi:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
     story.append(Paragraph(f"<b>Raporu Oluşturan Yetkili:</b> {st.session_state.get('user_name', 'Bilinmiyor')} ({st.session_state.get('user_role', 'Rol Yok')})", styles['Normal']))
     story.append(Spacer(1, 15))
 
     story.append(Paragraph(f"<b>Toplam Takip Edilen Vektör:</b> {len(dataframe)}", styles['Normal']))
-    story.append(Paragraph(f"<b>Tespit Edilen Tehdit/Risk Sayısı:</b> {len(riskliler)}", styles['Normal']))
+    story.append(Paragraph(f"<b>Tespit Edilen Yabancı İhlal Unsuru:</b> {len(riskliler)}", styles['Normal']))
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph("<b>🚨 KRİTİK TEHDİT & İHLAL LİSTESİ</b>", styles['Heading2']))
+    story.append(Paragraph("<b>🚨 YABANCI İHLAL & TEHDİT LİSTESİ</b>", styles['Heading2']))
     
     table_data = [["Çağrı Kodu", "Birlik/Operatör", "Kalkış ➔ Varış", "İrtifa (m)", "Risk Skoru"]]
     for _, row in riskliler.iterrows():
@@ -466,7 +479,7 @@ if sadece_tsk:
 
 if not df.empty:
     X = df[['lat', 'lon', 'irtifa_m', 'hiz_kmh', 'yon_deg', 'mesafe_deg']]
-    y = [1 if (row['is_ghost'] or (row['mesafe_deg'] < 1.8 and (30 <= row['yon_deg'] <= 120))) else 0 for _, row in df.iterrows()]
+    y = [1 if (row['sinir_ihlal'] or row['is_ghost'] or (row['mesafe_deg'] < 1.8 and (30 <= row['yon_deg'] <= 120))) else 0 for _, row in df.iterrows()]
 
     rf = RandomForestClassifier(n_estimators=100, max_depth=8, random_state=42)
     if len(set(y)) > 1:
@@ -477,39 +490,40 @@ if not df.empty:
         
     df['alarm'] = df['risk_skoru'] >= threshold
     riskli_df = df[df['alarm']].sort_values(by='risk_skoru', ascending=False)
-    ghost_df = df[df['is_ghost']]
+    ihlal_df = df[df['sinir_ihlal']]
 
-    if len(ghost_df) > 0:
-        st.markdown(f'<div class="threat-hud">🚨 [C4ISR KRİTİK ALARM] Transponder Sinyali Vermeyen DÜŞMAN UNSURU Tespit Edildi! Otonom Önleme Aktif!</div>', unsafe_allow_html=True)
+    # DÜŞMAN SAVAŞ UÇAĞI SINIR İHLAL UYARISI
+    if len(ihlal_df) > 0:
+        st.markdown(f'<div class="threat-hud">🚨 [MİLLİ SINIR İHLAL ALARMI] Türkiye Dışından Gelen {len(ihlal_df)} Yabancı Savaş Unsuru Sınırı İhlal Etti! F-16 Önleme Jeti Görevlendirildi!</div>', unsafe_allow_html=True)
     elif len(riskli_df) > 0:
-        st.markdown(f'<div class="threat-hud">⚠️ [TAKTİK UYARI] {len(riskli_df)} Hava Aracı Kritik Geofence Bölgesinde!</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="threat-hud">⚠️ [TAKTİK UYARI] {len(riskli_df)} Yabancı Hava Aracı Sınır Bölgesinde!</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye Hava Sahası Tam Güvenlik Altında.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status-good">✅ [MİLLİ SINIRLAR EMNİYETTE] Türkiye Hava ve Deniz Sahasını İhlal Eden Yabancı Unsur Yok.</div>', unsafe_allow_html=True)
 
     st.markdown("""
         <div class="radar-container">
             <div class="radar-sweep"></div>
             <div class="radar-center"></div>
-            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 AESA & NAVAL CARRIER RADAR SWEEP: ACTIVE</div>
+            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 GEOFENCE BORDER DEFENSE RADAR: ACTIVE SCAN</div>
         </div>
     """, unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Hava Vektörü", len(df))
     m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
-    m3.metric("Takip Edilen Uçak Gemisi", len(UCAK_GEMILERI))
+    m3.metric("Yabancı Sınır İhlali", len(ihlal_df), delta_color="inverse")
     
     pdf_data = pdf_rapor_olustur(df, riskli_df)
     m4.download_button(
-        label="📄 TAKTİK MÜDAHALE RAPORU İNDİR",
+        label="📄 İHLAL RAPORU İNDİR",
         data=pdf_data,
-        file_name=f"AASS_Taktik_Rapor_{int(time.time())}.pdf",
+        file_name=f"AASS_Sinir_Ihlal_Raporu_{int(time.time())}.pdf",
         mime="application/pdf"
     )
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Donanma Katmanı", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 C4ISR Sınır İhlal & Önleme Haritası", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
@@ -525,8 +539,19 @@ if not df.empty:
             map_zoom = 6
 
         with c1:
-            tiles_type = "Stamen Terrain" if sar_katmani else "CartoDB dark_matter"
-            m = folium.Map(location=map_center, zoom_start=map_zoom, tiles=tiles_type)
+            if sar_katmani:
+                m = folium.Map(
+                    location=map_center, 
+                    zoom_start=map_zoom, 
+                    tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                    attr="Esri World Imagery"
+                )
+            else:
+                m = folium.Map(
+                    location=map_center, 
+                    zoom_start=map_zoom, 
+                    tiles="CartoDB dark_matter"
+                )
             
             # HAVALİMANLARI
             for h in HAVALIMANLARI:
@@ -547,43 +572,22 @@ if not df.empty:
                         tooltip=f"📡 RADAR: {r['kod']}",
                         icon=folium.Icon(color="green", icon="rss", prefix="fa")
                     ).add_to(m)
-                    
-                    folium.Circle(
-                        location=[r["lat"], r["lon"]],
-                        radius=r["menzil_km"] * 1000,
-                        color="#00ff66",
-                        weight=1,
-                        fill=True,
-                        fill_opacity=0.03
-                    ).add_to(m)
 
-            # UÇAK GEMİLERİ KATMANI (CARRIER GROUP TRACKER)
+            # UÇAK GEMİLERİ
             if goster_ucak_gemileri:
                 for carrier in UCAK_GEMILERI:
                     c_color = "cadetblue" if carrier["is_friendly"] else "orange"
-                    c_icon = "ship"
-                    
                     folium.Marker(
                         location=[carrier["lat"], carrier["lon"]],
-                        popup=f"<b>🚢 {carrier['ad']}</b><br><b>Ülke:</b> {carrier['ülke']}<br><b>Konuşlu Hava Filosu:</b> {carrier['konuşlu']}",
-                        tooltip=f"🚢 UÇAK GEMİSİ: {carrier['kod']} ({carrier['ülke']})",
-                        icon=folium.Icon(color=c_color, icon=c_icon, prefix="fa")
-                    ).add_to(m)
-                    
-                    # Uçak Gemisi Uçuş/Menzil Çemberi
-                    folium.Circle(
-                        location=[carrier["lat"], carrier["lon"]],
-                        radius=carrier["menzil_km"] * 1000,
-                        color="#00a8ff" if carrier["is_friendly"] else "#ff0055",
-                        weight=1.5,
-                        dash_array="5, 5",
-                        fill=True,
-                        fill_opacity=0.05
+                        popup=f"<b>🚢 {carrier['ad']}</b><br>Ülke: {carrier['ülke']}<br>Konuşlu: {carrier['konuşlu']}",
+                        tooltip=f"🚢 UÇAK GEMİSİ: {carrier['kod']}",
+                        icon=folium.Icon(color=c_color, icon="ship", prefix="fa")
                     ).add_to(m)
 
-            if len(ghost_df) > 0:
-                g_target = ghost_df.iloc[0]
-                base_jet = HAVALIMANLARI[7]
+            # YABANCI SAVAŞ UÇAĞI İHLALİ VARSA F-16 ÖNLEME ÇİZGİSİ
+            if len(ihlal_df) > 0:
+                g_target = ihlal_df.iloc[0]
+                base_jet = HAVALIMANLARI[7] # 1. Ana Jet Üssü Eskişehir
                 
                 i_lat, i_lon, t_sec = onleme_noktasi_hesapla(
                     g_target['lat'], g_target['lon'], g_target['hiz_kmh'], g_target['yon_deg'],
@@ -597,21 +601,21 @@ if not df.empty:
                 ).add_to(m)
                 
                 folium.CircleMarker(
-                    location=(i_lat, i_lon), radius=12, color="#ff0000", fill=True, fill_color="#ff0000",
-                    popup=f"🎯 TAHMİNİ ÖNLEME / TEMAS NOKTASI (Süre: {t_sec} sn)"
+                    location=(i_lat, i_lon), radius=14, color="#ff0000", fill=True, fill_color="#ff0000",
+                    popup=f"🎯 DÜŞMAN ÖNLEME TEMAS NOKTASI ({t_sec} saniye)"
                 ).add_to(m)
 
             for _, row in df.iterrows():
-                is_ghost = row['is_ghost']
+                is_ihlal = row['sinir_ihlal']
                 is_risk = row['alarm']
                 is_uav = row['is_uav']
                 
-                color = "#FF0055" if is_ghost else ("#FF3300" if is_risk else ("#00FF66" if is_uav else "#00FFCC"))
+                color = "#FF0055" if is_ihlal else ("#FF3300" if is_risk else ("#00FF66" if is_uav else "#00FFCC"))
                 hover_text = f"{row['ucak_id']} | Birim: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m"
                 
-                folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=3 if is_ghost else 1.5).add_to(m)
+                folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=3 if is_ihlal else 1.5).add_to(m)
                 folium.CircleMarker(
-                    location=(row['lat'], row['lon']), radius=9 if is_ghost else 6, color=color, fill=True, fill_color=color, tooltip=hover_text
+                    location=(row['lat'], row['lon']), radius=9 if is_ihlal else 6, color=color, fill=True, fill_color=color, tooltip=hover_text
                 ).add_to(m)
 
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
@@ -634,7 +638,7 @@ if not df.empty:
                     <p style="margin:3px 0;"><b>🆔 SQUAWK:</b> <code>{u['icao24']}</code></p>
                     <p style="margin:3px 0;"><b>📈 İrtifa:</b> {u['irtifa_m']} m | <b>🚀 Hız:</b> {u['hiz_kmh']} km/h</p>
                     <p style="margin:3px 0;"><b>🧭 Vektör Yönü:</b> {u['yon_deg']}°</p>
-                    <p style="margin:3px 0;"><b>⚠️ AI Risk Skoru:</b> %{u['risk_skoru']*100:.1f}</p>
+                    <p style="margin:3px 0;"><b>🚨 Sınır İhlal Durumu:</b> {"⚠️ İHLAL VAR!" if u['sinir_ihlal'] else "✅ Emniyetli"}</p>
                     <a href="{fr24_url}" target="_blank" class="live-stream-btn">🎥 GERÇEK ZAMANLI CANLI İZLE (FLIGHTRADAR24)</a>
                 </div>
                 """, unsafe_allow_html=True)
@@ -643,7 +647,7 @@ if not df.empty:
                 st.subheader("📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)")
                 
                 if st.session_state["user_role"] == "Komutan":
-                    is_ghost_val = "true" if u['is_ghost'] else "false"
+                    is_ghost_val = "true" if u['is_ghost'] or u['sinir_ihlal'] else "false"
                     callsign_val = str(u['ucak_id'])
                     
                     voice_html = f"""
@@ -710,9 +714,9 @@ if not df.empty:
                             
                             setTimeout(function() {{
                                 if (isGhost) {{
-                                    var answer = "Cızırtı... Yanıt alınamadı. SQUAWK Sinyali Yok!";
+                                    var answer = "Cızırtı... Yanıt alınamadı. Yabancı Unsur İhlal Sinyali Vermiyor!";
                                     reply.innerHTML = "❌ " + answer;
-                                    playRadioBeepAndSpeak("Sinyal yok. Hedef yanıt vermiyor.");
+                                    playRadioBeepAndSpeak("Sinyal yok. Yabancı ihlal unsuru yanıt vermiyor.");
                                 }} else {{
                                     var answer = "Anlaşıldı komutanım. " + target + " telsiz mesajınızı aldı. Rota güncelleniyor.";
                                     reply.innerHTML = "✅ " + answer;
@@ -737,7 +741,7 @@ if not df.empty:
             get_elevation="irtifa_m",
             elevation_scale=1,
             radius=12000,
-            get_fill_color="[is_ghost ? 255 : (is_uav ? 0 : 0), is_ghost ? 0 : (is_uav ? 255 : 200), is_ghost ? 85 : (is_uav ? 100 : 255), 180]",
+            get_fill_color="[sinir_ihlal ? 255 : (is_uav ? 0 : 0), sinir_ihlal ? 0 : (is_uav ? 255 : 200), sinir_ihlal ? 85 : (is_uav ? 100 : 255), 180]",
             pickable=True,
             auto_highlight=True,
         )
