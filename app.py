@@ -13,7 +13,14 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# --- SAYFA YAPILANDIRMASI & C4ISR MILITARY HUD TEMA ---
+# Flightradar24 API Entegrasyonu
+try:
+    from FlightRadar24 import FlightRadar24API
+    fr_api = FlightRadar24API()
+except Exception:
+    fr_api = None
+
+# --- SAYFA YAPILANDIRMASI & MILITARY C4ISR TEMA ---
 st.set_page_config(
     page_title="MİLHAD-C4ISR - Entegre Hava & Deniz Savunma Komuta Merkezi",
     page_icon="🛡️",
@@ -23,25 +30,25 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    .main { background-color: #03070a; color: #00ff66; }
-    .stMetric { background-color: #07131d; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.2); }
-    div[data-testid="stSidebar"] { background-color: #040a10; border-right: 1px solid #00ff66; }
+    .main { background-color: #0c1014; color: #ffffff; }
+    .stMetric { background-color: #141a20; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.15); }
+    div[data-testid="stSidebar"] { background-color: #080c10; border-right: 1px solid #1f2830; }
     
     .hud-title {
-        font-family: 'Courier New', monospace;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
         color: #00ff66;
-        text-shadow: 0 0 8px #00ff66;
-        letter-spacing: 2px;
-        font-weight: bold;
         font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-shadow: 0 0 8px rgba(0,255,102,0.4);
     }
     .threat-hud {
-        background: linear-gradient(90deg, #400000 0%, #100000 100%);
-        color: #ff3344;
-        padding: 14px 24px;
-        border-radius: 4px;
-        border: 1px solid #ff3344;
-        box-shadow: 0 0 15px rgba(255,51,68,0.4);
+        background: linear-gradient(90deg, #721c24 0%, #2c0b0e 100%);
+        color: #ffffff;
+        padding: 16px 24px;
+        border-radius: 6px;
+        border: 2px solid #ff0055;
+        box-shadow: 0 0 20px rgba(255,0,85,0.5);
         font-family: monospace;
         font-size: 16px;
         font-weight: bold;
@@ -53,11 +60,12 @@ st.markdown("""
         padding: 14px 24px;
         border-radius: 4px;
         border: 1px solid #00ff66;
-        box-shadow: 0 0 15px rgba(0,255,102,0.3);
+        box-shadow: 0 0 15px rgba(0,255,102,0.2);
         font-family: monospace;
         font-size: 15px;
         margin-bottom: 20px;
     }
+    
     .flight-card {
         background-color: #07131d;
         border: 1px solid #00a8ff;
@@ -71,11 +79,10 @@ st.markdown("""
         border: 1px solid #00ff66;
         padding: 15px;
         border-radius: 6px;
-        margin-top: 15px;
         box-shadow: 0 0 10px rgba(0,255,102,0.2);
     }
     .login-box {
-        background-color: #07131d;
+        background-color: #141a20;
         border: 1px solid #00ff66;
         padding: 30px;
         border-radius: 8px;
@@ -99,22 +106,21 @@ st.markdown("""
     .radar-container {
         position: relative;
         width: 100%;
-        height: 100px;
-        background: #020b08;
+        height: 90px;
+        background: #050a0d;
         border: 1px solid #00ff66;
         border-radius: 6px;
         overflow: hidden;
         margin-bottom: 15px;
-        box-shadow: 0 0 15px rgba(0,255,102,0.2);
     }
     .radar-sweep {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 180px;
-        height: 180px;
-        margin-top: -90px;
-        margin-left: -90px;
+        width: 160px;
+        height: 160px;
+        margin-top: -80px;
+        margin-left: -80px;
         border-radius: 50%;
         border: 1px solid rgba(0,255,102,0.3);
         background: conic-gradient(from 0deg, rgba(0, 255, 102, 0.4) 0deg, transparent 60deg);
@@ -168,10 +174,10 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<h1 class="hud-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA, RADAR & DENİZ SAVUNMA MERKEZİ</h1>', unsafe_allow_html=True)
-st.caption("AESA Radar Füzyonu, Doğu Akdeniz Donanma Unsurları, Otonom Önleme Geometrisi & Taktik Telsiz")
+st.markdown('<div class="hud-title">🛡️ MİLHAD-C4ISR <span style="font-size:16px; color:#8f9ca6; font-weight:normal;">| Entegre Hava Sahası, Radar & Deniz Savunma Komuta Merkezi</span></div>', unsafe_allow_html=True)
+st.caption("Milli İhlal Erken İhbar, Flightradar24 Canlı Akış, AESA Radar Füzyonu & Taktik Telsiz")
 
-# UÇAK GEMİLERİ
+# UÇAK GEMİLERİ KATMANI
 UCAK_GEMILERI = [
     {
         "kod": "TCG-ANADOLU",
@@ -602,8 +608,7 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.markdown("---")
-                st.subheader("📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)")
+                st.markdown("<br>", unsafe_allow_html=True)
                 
                 if st.session_state["user_role"] == "Komutan":
                     is_ghost_val = "true" if u['is_ghost'] or u['sinir_ihlal'] else "false"
@@ -611,14 +616,15 @@ if not df.empty:
                     
                     voice_html = f"""
                     <div class="voice-card">
-                        <p style="color:#00ff66; font-weight:bold; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
-                        <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:14px; cursor:pointer; font-weight:bold; width:100%;">
+                        <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:8px; font-size:14px;">📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)</p>
+                        <p style="color:#aaa; font-size:12px; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
+                        <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold; width:100%;">
                             🔴 MANDALA BAS & TELSİZDEN TALİMAT VER
                         </button>
                         <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
                         <hr style="border-color:#00ff66;">
-                        <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
-                        <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px;">
+                        <p style="color:#00ffcc; font-size:12px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
+                        <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px; font-size:12px;">
                             [Telsiz Sessiz]
                         </div>
                     </div>
@@ -686,7 +692,7 @@ if not df.empty:
                     }}
                     </script>
                     """
-                    st.components.v1.html(voice_html, height=280)
+                    st.components.v1.html(voice_html, height=270)
                 else:
                     st.warning("🔒 Telsiz kanalı üzerinden talimat verme yetkisi yalnızca 'Komutan' rolüne aittir.")
 
