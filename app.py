@@ -83,10 +83,22 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(0,255,102,0.3);
         font-family: monospace;
     }
+    .live-stream-btn {
+        display: block;
+        width: 100%;
+        background: #00a8ff;
+        color: #000;
+        text-align: center;
+        padding: 10px;
+        border-radius: 4px;
+        font-weight: bold;
+        text-decoration: none;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- OTURUM YÖNETİMİ (LOGIN / AUTHENTICATION) ---
+# --- OTURUM YÖNETİMİ ---
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "user_role" not in st.session_state:
@@ -124,13 +136,13 @@ if not st.session_state["logged_in"]:
 st.sidebar.markdown(f"👤 **Aktif Kullanıcı:** {st.session_state['user_name']}")
 st.sidebar.markdown(f"🎖️ **Yetki Rolü:** `{st.session_state['user_role']}`")
 
-if st.sidebar.button("🚪 OTurumu Kapat"):
+if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["logged_in"] = False
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — ASKERİ HAVA SAHASI SAVUNMA & ÖNLEME SİSTEMİ</h1>', unsafe_allow_html=True)
-st.caption("Otonom Önleme Geometrisi, C4ISR HUD Arayüzü, Taktik Telsiz & RBAC Güvenlik Katmanı")
+st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — CANLI HAVA SAHASI SAVUNMA & İZLEME MERKEZİ</h1>', unsafe_allow_html=True)
+st.caption("Anlık Canlı Takip Entegrasyonu, Otonom Önleme Geometrisi, Taktik Telsiz & C4ISR HUD Katmanı")
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
@@ -406,13 +418,25 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Önleme Geometrisi", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Canlı İzleme", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
+        
+        # Seçili Uçak Tespiti
+        secili_ucak_id = st.session_state.get('secili_ucak', df['ucak_id'].iloc[0])
+        secili_row = df[df['ucak_id'] == secili_ucak_id]
+        
+        if not secili_row.empty:
+            map_center = [secili_row.iloc[0]['lat'], secili_row.iloc[0]['lon']]
+            map_zoom = 7
+        else:
+            map_center = [39.0, 35.0]
+            map_zoom = 6
+
         with c1:
             tiles_type = "Stamen Terrain" if sar_katmani else "CartoDB dark_matter"
-            m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles=tiles_type)
+            m = folium.Map(location=map_center, zoom_start=map_zoom, tiles=tiles_type)
             
             for h in HAVALIMANLARI:
                 is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
@@ -459,11 +483,14 @@ if not df.empty:
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
         with c2:
-            st.subheader("🔎 TAKTİK HEDEF İNCELEME & SESLİ TELSİZ")
-            secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique())
+            st.subheader("🔎 CANLI TAKİP & TAKTİK TELSİZ")
+            secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique(), key="secili_ucak")
             
             if secili_ucak:
                 u = df[df['ucak_id'] == secili_ucak].iloc[0]
+                
+                # Flightradar24 Canlı İzleme Bağlantısı
+                fr24_url = f"https://www.flightradar24.com/{u['ucak_id']}"
                 
                 st.markdown(f"""
                 <div class="flight-card">
@@ -476,6 +503,7 @@ if not df.empty:
                     <p style="margin:3px 0;"><b>📈 İrtifa:</b> {u['irtifa_m']} m | <b>🚀 Hız:</b> {u['hiz_kmh']} km/h</p>
                     <p style="margin:3px 0;"><b>🧭 Vektör Yönü:</b> {u['yon_deg']}°</p>
                     <p style="margin:3px 0;"><b>⚠️ AI Risk Skoru:</b> %{u['risk_skoru']*100:.1f}</p>
+                    <a href="{fr24_url}" target="_blank" class="live-stream-btn">🎥 GERÇEK ZAMANLI CANLI İZLE (FLIGHTRADAR24)</a>
                 </div>
                 """, unsafe_allow_html=True)
                 
