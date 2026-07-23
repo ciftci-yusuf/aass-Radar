@@ -13,145 +13,120 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# --- SAYFA YAPILANDIRMASI & MILITARY TEMA ---
+# --- SAYFA YAPILANDIRMASI & C4ISR HUD TEMA ---
 st.set_page_config(
-    page_title="AASS - TSK & MİLLİ HAVA SAHASI KOMUTA MERKEZİ",
+    page_title="AASS - C4ISR AIRSPACE DEFENSE CENTER",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# MILITARY HUD STYLES
 st.markdown("""
     <style>
-    .main { background-color: #0b0e14; }
-    .stMetric { background-color: #141824; border: 1px solid #23293a; padding: 16px; border-radius: 8px; }
-    div[data-testid="stSidebar"] { background-color: #0f121d; border-right: 1px solid #23293a; }
+    .main { background-color: #03070a; color: #00ff66; }
+    .stMetric { background-color: #07131d; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.2); }
+    div[data-testid="stSidebar"] { background-color: #040a10; border-right: 1px solid #00ff66; }
+    
+    .hud-title {
+        font-family: 'Courier New', monospace;
+        color: #00ff66;
+        text-shadow: 0 0 8px #00ff66;
+        letter-spacing: 2px;
+        font-weight: bold;
+    }
     .threat-hud {
-        background: linear-gradient(90deg, #721c24 0%, #2c0b0e 100%);
-        color: #ffffff;
+        background: linear-gradient(90deg, #400000 0%, #100000 100%);
+        color: #ff3344;
         padding: 14px 24px;
-        border-radius: 8px;
-        border-left: 6px solid #ff3344;
+        border-radius: 4px;
+        border: 1px solid #ff3344;
+        box-shadow: 0 0 15px rgba(255,51,68,0.4);
         font-family: monospace;
         font-size: 16px;
         font-weight: bold;
         margin-bottom: 20px;
     }
     .status-good {
-        background: linear-gradient(90deg, #155724 0%, #0b2910 100%);
-        color: #ffffff;
+        background: linear-gradient(90deg, #002b11 0%, #001006 100%);
+        color: #00ff66;
         padding: 14px 24px;
-        border-radius: 8px;
-        border-left: 6px solid #28a745;
+        border-radius: 4px;
+        border: 1px solid #00ff66;
+        box-shadow: 0 0 15px rgba(0,255,102,0.3);
         font-family: monospace;
         font-size: 15px;
         margin-bottom: 20px;
     }
-    .ghost-alert {
-        background-color: #3d0007;
-        border: 1px dashed #ff0055;
-        padding: 12px;
-        border-radius: 5px;
-        color: #ff99aa;
-        font-family: monospace;
-        margin-bottom: 10px;
-    }
     .flight-card {
-        background-color: #141824;
-        border: 1px solid #0055ff;
+        background-color: #07131d;
+        border: 1px solid #00a8ff;
         padding: 15px;
-        border-radius: 8px;
-        margin-top: 10px;
+        border-radius: 6px;
+        box-shadow: 0 0 12px rgba(0,168,255,0.2);
+        font-family: monospace;
     }
     .voice-card {
-        background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
-        border: 1px solid #00f0ff;
+        background: #050e17;
+        border: 1px solid #00ff66;
         padding: 15px;
-        border-radius: 8px;
+        border-radius: 6px;
         margin-top: 15px;
+        box-shadow: 0 0 10px rgba(0,255,102,0.2);
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🛡️ AASS — Canlı Türkiye Hava Sahası Komuta & Telsiz Merkezi")
-st.caption("OpenSky ADS-B Gerçek Zamanlı Canlı Radar Akışı, TSK Filosu & Canlı Sesli İletişim")
+st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — ASKERİ HAVA SAHASI SAVUNMA & ÖNLEME SİSTEMİ</h1>', unsafe_allow_html=True)
+st.caption("Otonom Önleme Geometrisi, C4ISR HUD Arayüzü, Taktik Telsiz & SAR Katmanı")
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
-    {"kod": "ADF", "ad": "Adıyaman Havalimanı", "lat": 37.731, "lon": 38.468, "tip": "Sivil"},
-    {"kod": "AJI", "ad": "Ağrı Ahmed-i Hani Havalimanı", "lat": 39.654, "lon": 43.027, "tip": "Sivil"},
-    {"kod": "MZH", "ad": "Amasya Merzifon Havalimanı", "lat": 40.829, "lon": 35.521, "tip": "Sivil/Karma"},
-    {"kod": "ESB", "ad": "Ankara Esenboğa Havalimanı", "lat": 40.128, "lon": 32.995, "tip": "Sivil Başkent Hub"},
+    {"kod": "ESB", "ad": "Ankara Esenboğa", "lat": 40.128, "lon": 32.995, "tip": "Sivil Başkent Hub"},
     {"kod": "AYT", "ad": "Antalya Havalimanı", "lat": 36.898, "lon": 30.800, "tip": "Sivil Uluslararası"},
-    {"kod": "GZP", "ad": "Gazipaşa-Alanya Havalimanı", "lat": 36.299, "lon": 32.301, "tip": "Sivil"},
-    {"kod": "EDO", "ad": "Balıkesir Koca Seyit Havalimanı", "lat": 39.554, "lon": 27.013, "tip": "Sivil"},
-    {"kod": "BAL", "ad": "Batman Havalimanı", "lat": 37.929, "lon": 41.116, "tip": "Sivil"},
-    {"kod": "BGG", "ad": "Bingöl Havalimanı", "lat": 38.861, "lon": 40.592, "tip": "Sivil"},
-    {"kod": "YEI", "ad": "Bursa Yenişehir Havalimanı", "lat": 40.255, "lon": 29.562, "tip": "Sivil"},
-    {"kod": "CKZ", "ad": "Çanakkale Havalimanı", "lat": 40.137, "lon": 26.426, "tip": "Sivil"},
-    {"kod": "GKD", "ad": "Çanakkale Gökçeada Havalimanı", "lat": 40.200, "lon": 25.883, "tip": "Sivil"},
-    {"kod": "COV", "ad": "Çukurova Uluslararası Havalimanı", "lat": 36.890, "lon": 35.060, "tip": "Sivil Uluslararası"},
-    {"kod": "DNZ", "ad": "Denizli Çardak Havalimanı", "lat": 37.785, "lon": 29.701, "tip": "Sivil"},
-    {"kod": "DIY", "ad": "Diyarbakır Havalimanı", "lat": 37.893, "lon": 40.201, "tip": "Sivil/TSK Üssü"},
-    {"kod": "EZS", "ad": "Elazığ Havalimanı", "lat": 38.607, "lon": 39.291, "tip": "Sivil"},
-    {"kod": "ERC", "ad": "Erzincan Yıldırım Akbulut Havalimanı", "lat": 39.715, "lon": 39.526, "tip": "Sivil"},
-    {"kod": "ERZ", "ad": "Erzurum Havalimanı", "lat": 39.956, "lon": 41.170, "tip": "Sivil/Karma"},
-    {"kod": "AOE", "ad": "Eskişehir Hasan Polatkan Havalimanı", "lat": 39.812, "lon": 30.531, "tip": "Sivil"},
-    {"kod": "GZT", "ad": "Gaziantep Havalimanı", "lat": 36.947, "lon": 37.478, "tip": "Sivil"},
-    {"kod": "YKO", "ad": "Hakkâri Yüksekova Selahaddin Eyyubi", "lat": 37.549, "lon": 44.238, "tip": "Sivil"},
-    {"kod": "HTY", "ad": "Hatay Havalimanı", "lat": 36.363, "lon": 36.282, "tip": "Sivil"},
-    {"kod": "IGD", "ad": "Iğdır Şehit Bülent Aydın Havalimanı", "lat": 39.981, "lon": 43.864, "tip": "Sivil"},
-    {"kod": "ISE", "ad": "Isparta Süleyman Demirel Havalimanı", "lat": 37.861, "lon": 30.368, "tip": "Sivil"},
     {"kod": "IST", "ad": "İstanbul Havalimanı", "lat": 41.275, "lon": 28.751, "tip": "Sivil Ana Hub"},
-    {"kod": "SAW", "ad": "İstanbul Sabiha Gökçen Havalimanı", "lat": 40.898, "lon": 29.309, "tip": "Sivil Hub"},
-    {"kod": "ISL", "ad": "İstanbul Atatürk Havalimanı", "lat": 40.976, "lon": 28.814, "tip": "Özel/Kargo/Devlet"},
-    {"kod": "ADB", "ad": "İzmir Adnan Menderes Havalimanı", "lat": 38.292, "lon": 27.157, "tip": "Sivil Hub"},
-    {"kod": "KSY", "ad": "Kars Harakani Havalimanı", "lat": 40.562, "lon": 43.115, "tip": "Sivil"},
-    {"kod": "KFS", "ad": "Kastamonu Havalimanı", "lat": 41.314, "lon": 33.795, "tip": "Sivil"},
-    {"kod": "ASR", "ad": "Kayseri Erkilet Havalimanı", "lat": 38.770, "lon": 35.495, "tip": "Sivil/TSK Karma"},
-    {"kod": "KCO", "ad": "Kocaeli Cengiz Topel Havalimanı", "lat": 40.735, "lon": 30.083, "tip": "Sivil"},
-    {"kod": "KYA", "ad": "Konya Havalimanı", "lat": 37.979, "lon": 32.561, "tip": "Sivil/TSK Üssü"},
-    {"kod": "MLX", "ad": "Malatya Erhaç Havalimanı", "lat": 38.435, "lon": 38.090, "tip": "Sivil/TSK Üssü"},
-    {"kod": "MQM", "ad": "Mardin Prof. Dr. Aziz Sancar", "lat": 37.223, "lon": 40.631, "tip": "Sivil"},
-    {"kod": "BJV", "ad": "Milas-Bodrum Havalimanı", "lat": 37.250, "lon": 27.664, "tip": "Sivil Uluslararası"},
-    {"kod": "MSR", "ad": "Muş Sultan Alparslan Havalimanı", "lat": 38.747, "lon": 41.662, "tip": "Sivil"},
-    {"kod": "NAV", "ad": "Nevşehir Kapadokya Havalimanı", "lat": 38.772, "lon": 34.534, "tip": "Sivil"},
-    {"kod": "OGU", "ad": "Ordu-Giresun Havalimanı", "lat": 40.966, "lon": 37.980, "tip": "Sivil Deniz Dolgu"},
-    {"kod": "RZV", "ad": "Rize-Artvin Havalimanı", "lat": 41.168, "lon": 40.830, "tip": "Sivil Deniz Dolgu"},
-    {"kod": "SZF", "ad": "Samsun Çarşamba Havalimanı", "lat": 41.265, "lon": 36.548, "tip": "Sivil"},
-    {"kod": "SXZ", "ad": "Siirt Havalimanı", "lat": 37.978, "lon": 41.839, "tip": "Sivil"},
-    {"kod": "NOP", "ad": "Sinop Havalimanı", "lat": 42.016, "lon": 35.066, "tip": "Sivil"},
-    {"kod": "VAS", "ad": "Sivas Nuri Demirağ Havalimanı", "lat": 39.814, "lon": 36.903, "tip": "Sivil"},
-    {"kod": "GNY", "ad": "Şanlıurfa GAP Havalimanı", "lat": 37.456, "lon": 38.908, "tip": "Sivil"},
-    {"kod": "NKT", "ad": "Şırnak Şerafettin Elçi Havalimanı", "lat": 37.365, "lon": 42.059, "tip": "Sivil"},
-    {"kod": "TEQ", "ad": "Tekirdağ Çorlu Atatürk Havalimanı", "lat": 41.138, "lon": 27.918, "tip": "Sivil"},
-    {"kod": "TJK", "ad": "Tokat Havalimanı", "lat": 40.309, "lon": 36.371, "tip": "Sivil"},
+    {"kod": "SAW", "ad": "Sabiha Gökçen", "lat": 40.898, "lon": 29.309, "tip": "Sivil Hub"},
+    {"kod": "ADB", "ad": "İzmir Adnan Menderes", "lat": 38.292, "lon": 27.157, "tip": "Sivil Hub"},
     {"kod": "TZX", "ad": "Trabzon Havalimanı", "lat": 40.995, "lon": 39.789, "tip": "Sivil"},
-    {"kod": "USQ", "ad": "Uşak Havalimanı", "lat": 38.682, "lon": 29.472, "tip": "Sivil"},
-    {"kod": "VAN", "ad": "Van Ferit Melen Havalimanı", "lat": 38.468, "lon": 43.332, "tip": "Sivil"},
-    {"kod": "ONQ", "ad": "Zonguldak Çaycuma Havalimanı", "lat": 41.506, "lon": 27.530, "tip": "Sivil"},
-    {"kod": "AJU-1", "ad": "1. Ana Jet Üs Komutanlığı (Eskişehir)", "lat": 39.786, "lon": 30.582, "tip": "🎖️ TSK Askeri Üs"},
-    {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü (Adana)", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK / NATO Askeri Üs"}
+    {"kod": "AJU-1", "ad": "1. Ana Jet Üssü (Eskişehir)", "lat": 39.786, "lon": 30.582, "tip": "🎖️ TSK Askeri Üs"},
+    {"kod": "AJU-5", "ad": "5. Ana Jet Üssü (Merzifon)", "lat": 40.829, "lon": 35.521, "tip": "🎖️ TSK Askeri Üs"},
+    {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK/NATO Üssü"}
 ]
 
 def en_yakin_havalimani(lat, lon):
-    en_kucuk_mesafe = 999999
+    en_kucuk = 999999
     secilen = HAVALIMANLARI[0]
     for h in HAVALIMANLARI:
         d = np.sqrt((lat - h["lat"])**2 + (lon - h["lon"])**2)
-        if d < en_kucuk_mesafe:
-            en_kucuk_mesafe = d
+        if d < en_kucuk:
+            en_kucuk = d
             secilen = h
     return secilen
 
-# --- CANLI OPENSKY ADS-B SERVİSİ ---
+# ÖNLEME GEOMETRİSİ HESAPLAYICI (INTERCEPTION POINT)
+def onleme_noktasi_hesapla(target_lat, target_lon, target_speed, target_heading, base_lat, base_lon, jet_speed=1800):
+    # F-16 supersonic hızı ile hedef uçak arasındaki buluşma noktasını hesaplar
+    t_rad = np.radians(target_heading)
+    v_target_x = target_speed * np.sin(t_rad)
+    v_target_y = target_speed * np.cos(t_rad)
+    
+    dx = (target_lon - base_lon) * 111000
+    dy = (target_lat - base_lat) * 111000
+    
+    # Basitleştirilmiş vektörel kesişim süresi
+    t_intercept = np.sqrt(dx**2 + dy**2) / (jet_speed * 1000 / 3600) # Saniye
+    
+    intercept_lat = target_lat + (v_target_y * (t_intercept / 3600)) / 111
+    intercept_lon = target_lon + (v_target_x * (t_intercept / 3600)) / (111 * np.cos(np.radians(target_lat)))
+    
+    return intercept_lat, intercept_lon, round(t_intercept, 1)
+
 def ucak_verisi_getir(radar_fuzyon_aktif):
     url = "https://opensky-network.org/api/states/all?lamin=36.0&lomin=26.0&lamax=42.0&lomax=45.0"
     ucak_listesi = []
     
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=4)
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3)
         if response.status_code == 200:
             data = response.json()
             states = data.get("states")
@@ -165,12 +140,11 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                         yon = state[10] if state[10] is not None else 90
                         
                         is_uav = "BAYRAKTAR" in callsign or "AKINCI" in callsign or "ANKA" in callsign
-                        is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign or "HV" in callsign
-                        havayolu = "TSK / Milli İHA Filosu" if is_tsk else ("Türk Hava Yolları" if "THY" in callsign else "Canlı Sivil Trafik")
+                        is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign
+                        havayolu = "TSK / Milli Filo" if is_tsk else "Sivil Hava Trafiği"
                         
                         kalkis = en_yakin_havalimani(lat, lon)
-                        varis_adaylari = [h for h in HAVALIMANLARI if h["kod"] != kalkis["kod"]]
-                        varis = varis_adaylari[abs(hash(callsign)) % len(varis_adaylari)]
+                        varis = HAVALIMANLARI[(idx+2) % len(HAVALIMANLARI)]
                         
                         lokasyonlar = [(lat, lon)]
                         cur_lat, cur_lon = lat, lon
@@ -178,22 +152,19 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                             cur_lat += np.cos(np.radians(yon)) * (hiz / 111000)
                             cur_lon += np.sin(np.radians(yon)) * (hiz / (111000 * np.cos(np.radians(cur_lat))))
                             lokasyonlar.append((cur_lat, cur_lon))
-                        
+                            
                         orta_lat, orta_lon = 39.1, 33.5
                         mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
                         
                         ucak_listesi.append({
                             'ucak_id': callsign,
                             'icao24': str(state[0]).upper(),
-                            'ulke': state[2] if state[2] else "Türkiye",
                             'havayolu': havayolu,
                             'is_uav': is_uav,
                             'is_tsk': is_tsk,
                             'is_ghost': False,
                             'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                             'varis': f"{varis['kod']} ({varis['ad']})",
-                            'kalkis_saat': "Canlı Aktif",
-                            'varis_saat': "Uçuşta",
                             'lat': lat,
                             'lon': lon,
                             'irtifa_m': round(irtifa, 1),
@@ -205,23 +176,18 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
     except Exception:
         pass
 
-    # YEDEKLİ CANLI DESTEK SİMÜLASYONU (Ağ kesintilerinde radar boş kalmaz)
     if len(ucak_listesi) < 12:
         np.random.seed(int(time.time()) // 10)
-        eksik = 30 - len(ucak_listesi)
-        tsk_filosu = ["AKINCI-TİHA-01", "KIZILELMA-02", "BAYRAKTAR-TB3", "ANKA-S-04", "SOLOTÜRK-F16"]
+        eksik = 28 - len(ucak_listesi)
+        tsk_filosu = ["AKINCI-TİHA-01", "KIZILELMA-02", "BAYRAKTAR-TB3", "SOLOTÜRK-F16"]
         
         for i in range(eksik):
             if i % 3 == 0:
                 callsign = np.random.choice(tsk_filosu) + f"-{i}"
-                is_uav = True
-                is_tsk = True
-                havayolu = "TSK Otonom Filo"
+                is_uav, is_tsk, havayolu = True, True, "TSK Otonom Filo"
             else:
                 callsign = f"THY{200 + i}" if i % 2 == 0 else f"PGT{300 + i}"
-                is_uav = False
-                is_tsk = False
-                havayolu = "Türk Hava Yolları" if i % 2 == 0 else "Pegasus"
+                is_uav, is_tsk, havayolu = False, False, "Türk Hava Yolları"
                 
             lat = np.random.uniform(36.8, 41.5)
             lon = np.random.uniform(27.5, 42.5)
@@ -230,7 +196,7 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             yon = np.random.uniform(0, 360)
             
             kalkis = en_yakin_havalimani(lat, lon)
-            varis = HAVALIMANLARI[(i+5) % len(HAVALIMANLARI)]
+            varis = HAVALIMANLARI[(i+3) % len(HAVALIMANLARI)]
             
             lokasyonlar = [(lat, lon)]
             cur_lat, cur_lon = lat, lon
@@ -245,15 +211,12 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             ucak_listesi.append({
                 'ucak_id': callsign,
                 'icao24': f"A{2000+i:04X}",
-                'ulke': "Türkiye",
                 'havayolu': havayolu,
                 'is_uav': is_uav,
                 'is_tsk': is_tsk,
                 'is_ghost': False,
                 'kalkis': f"{kalkis['kod']} ({kalkis['ad']})",
                 'varis': f"{varis['kod']} ({varis['ad']})",
-                'kalkis_saat': "Canlı Taktik",
-                'varis_saat': "Uçuşta",
                 'lat': lat,
                 'lon': lon,
                 'irtifa_m': round(irtifa, 1),
@@ -263,14 +226,12 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'lokasyonlar': lokasyonlar
             })
 
+    # DÜŞMAN GÖLGE TEMAS
     if radar_fuzyon_aktif:
         np.random.seed(int(time.time()) // 5)
-        for g in range(2):
-            lat = np.random.uniform(39.5, 41.8)
-            lon = np.random.uniform(28.0, 33.0)
-            hiz = np.random.uniform(950, 1450)
-            yon = np.random.uniform(100, 160)
-            irtifa = np.random.uniform(500, 2200)
+        for g in range(1):
+            lat, lon = 40.2, 31.8
+            hiz, yon, irtifa = 1100, 120, 1800
             
             orta_lat, orta_lon = 39.1, 33.5
             mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
@@ -283,17 +244,14 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 lokasyonlar.append((cur_lat, cur_lon))
 
             ucak_listesi.append({
-                'ucak_id': f"TANIMSIZ-GHOST-{g+1}",
+                'ucak_id': "TEHDİT-GHOST-ALPHA",
                 'icao24': "NO-SQUAWK",
-                'ulke': "BİLİNMİYOR (TEHDİT)",
-                'havayolu': "⚠️ DÜŞMAN / UNIDENTIFIED",
+                'havayolu': "⚠️ UNIDENTIFIED HOSTILE",
                 'is_uav': False,
                 'is_tsk': False,
                 'is_ghost': True,
                 'kalkis': "Bilinmiyor",
-                'varis': "Bilinmiyor",
-                'kalkis_saat': "--:--",
-                'varis_saat': "--:--",
+                'varis': "Ankara Esenboğa Yaklaşması",
                 'lat': lat,
                 'lon': lon,
                 'irtifa_m': round(irtifa, 1),
@@ -305,52 +263,14 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             
     return pd.DataFrame(ucak_listesi)
 
-def pdf_rapor_olustur(dataframe, riskliler):
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = []
-
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#003366"), spaceAfter=12)
-    story.append(Paragraph("AASS CANLI TSK & HAVACILIK GÜVENLİK RAPORU", title_style))
-    story.append(Paragraph(f"<b>Rapor Tarihi:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
-    story.append(Spacer(1, 15))
-
-    story.append(Paragraph(f"<b>Toplam Takip Edilen Canlı Hava Vektörü:</b> {len(dataframe)}", styles['Normal']))
-    story.append(Paragraph(f"<b>Kritik Tehdit/Risk Sayısı:</b> {len(riskliler)}", styles['Normal']))
-    story.append(Spacer(1, 15))
-
-    story.append(Paragraph("<b>🚨 KRİTİK TEHDİT & İHLAL LİSTESİ</b>", styles['Heading2']))
-    
-    table_data = [["Çağrı Kodu", "Birlik/Operatör", "Kalkış ➔ Varış", "İrtifa (m)", "Risk Skoru"]]
-    for _, row in riskliler.iterrows():
-        table_data.append([row['ucak_id'], row['havayolu'], f"{row['kalkis']} ➔ {row['varis']}", str(row['irtifa_m']), f"%{row['risk_skoru']*100:.1f}"])
-
-    if len(table_data) > 1:
-        t = Table(table_data, colWidths=[90, 130, 130, 70, 70])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#721c24")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f8d7da")),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        story.append(t)
-
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
-
 # --- SIDEBAR KONTROL PANELİ ---
-st.sidebar.title("🎛️ DEFENSE COMMAND PANEL")
-oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TAKİBİ", value=True)
-refresh_rate = st.sidebar.slider("Yenileme Frekansı (Saniye)", 5, 30, 10)
-radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu", value=True)
-goster_havalimanlari = st.sidebar.checkbox("🛫 Havalimanı İkonlarını Göster", value=True)
-sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Süz", value=False)
-threshold = st.sidebar.slider("AI Tehdit Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
+st.sidebar.title("🎛️ C4ISR COMMAND PANEL")
+oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TARAMASI", value=True)
+refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
+radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
+sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
+sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
+threshold = st.sidebar.slider("AI Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
 
 df = ucak_verisi_getir(radar_fuzyon)
 
@@ -373,85 +293,77 @@ if not df.empty:
     ghost_df = df[df['is_ghost']]
 
     if len(ghost_df) > 0:
-        st.markdown(f'<div class="threat-hud">🚨 [KRİTİK ALARM] {len(ghost_df)} Adet SQUAWK Sinyali Vermeyen TANİMSİZ HEDEF Tespit Edildi!</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="threat-hud">🚨 [C4ISR KRİTİK ALARM] Transponder Sinyali Vermeyen DÜŞMAN UNSURU Tespit Edildi! Otonom Önleme Aktif!</div>', unsafe_allow_html=True)
     elif len(riskli_df) > 0:
-        st.markdown(f'<div class="threat-hud">⚠️ [TAKTİK UYARI] {len(riskli_df)} Hava Vektörü Kritik Bölgeye Yaklaşıyor!</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="threat-hud">⚠️ [TAKTİK UYARI] {len(riskli_df)} Hava Aracı Kritik Geofence Bölgesinde!</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye hava sahasındaki canlı tüm vektörler emniyetli.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye Hava Sahası Tam Güvenlik Altında.</div>', unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Toplam Canlı Vektör", len(df))
-    m2.metric("Sistemdeki Havalimanı", len(HAVALIMANLARI))
+    m1.metric("Toplam Vektör", len(df))
+    m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
-    
-    pdf_data = pdf_rapor_olustur(df, riskli_df)
-    m4.download_button(
-        label="📄 RESMİ PDF RAPORU İNDİR",
-        data=pdf_data,
-        file_name=f"AASS_Taktik_Rapor_{int(time.time())}.pdf",
-        mime="application/pdf"
-    )
+    m4.metric("AESA Radar Durumu", "AKTİF / FÜZYON")
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 Canlı Türkiye Taktik Haritası", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Önleme Geometrisi", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
         with c1:
-            m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles="CartoDB dark_matter")
+            tiles_type = "Stamen Terrain" if sar_katmani else "CartoDB dark_matter"
+            m = folium.Map(location=[39.0, 35.0], zoom_start=6, tiles=tiles_type)
             
-            if goster_havalimanlari:
-                for h in HAVALIMANLARI:
-                    is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
-                    icon_color = "red" if is_askeri else "blue"
-                    icon_shape = "star" if is_askeri else "plane"
-                    
-                    folium.Marker(
-                        location=[h["lat"], h["lon"]],
-                        popup=f"<b>{h['ad']} ({h['kod']})</b><br>{h['tip']}",
-                        tooltip=f"{'🎖️' if is_askeri else '🛫'} {h['kod']} - {h['ad']}",
-                        icon=folium.Icon(color=icon_color, icon=icon_shape, prefix="fa")
-                    ).add_to(m)
+            for h in HAVALIMANLARI:
+                is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
+                icon_color = "red" if is_askeri else "blue"
+                folium.Marker(
+                    location=[h["lat"], h["lon"]],
+                    popup=f"<b>{h['ad']} ({h['kod']})</b>",
+                    icon=folium.Icon(color=icon_color, icon="star" if is_askeri else "plane", prefix="fa")
+                ).add_to(m)
+
+            # EĞER DÜŞMAN GÖLGE HEDEF VARSA OTONOM F-16 ÖNLEME ÇİZGİSİ VE BULUŞMA NOKTASI ÇİZ
+            if len(ghost_df) > 0:
+                g_target = ghost_df.iloc[0]
+                base_jet = HAVALIMANLARI[7] # Eskişehir 1. Ana Jet Üssü
+                
+                i_lat, i_lon, t_sec = onleme_noktasi_hesapla(
+                    g_target['lat'], g_target['lon'], g_target['hiz_kmh'], g_target['yon_deg'],
+                    base_jet['lat'], base_jet['lon']
+                )
+                
+                # F-16 Önleme Rotası
+                folium.PolyLine(
+                    locations=[(base_jet['lat'], base_jet['lon']), (i_lat, i_lon)],
+                    color="#00ff66", weight=3, dash_array="10, 10",
+                    tooltip=f"🚀 SOLOTÜRK F-16 Önleme Vektörü (Tahmini Temas: {t_sec}s)"
+                ).add_to(m)
+                
+                # Önleme / Buluşma Noktası Hedef Çemberi
+                folium.CircleMarker(
+                    location=(i_lat, i_lon), radius=12, color="#ff0000", fill=True, fill_color="#ff0000",
+                    popup=f"🎯 TAHMİNİ ÖNLEME / TEMAS NOKTASI (Süre: {t_sec} sn)"
+                ).add_to(m)
 
             for _, row in df.iterrows():
+                is_ghost = row['is_ghost']
                 is_risk = row['alarm']
                 is_uav = row['is_uav']
-                is_ghost = row['is_ghost']
-                is_tsk = row['is_tsk']
                 
-                if is_ghost:
-                    color = "#FF0055"
-                    icon_type = "💀 TANİMSİZ GÖLGE HEDEF"
-                elif is_risk:
-                    color = "#FF3300"
-                    icon_type = "⚠️ TEHDİT VEKTÖRÜ"
-                elif is_uav:
-                    color = "#00FF66"
-                    icon_type = "🚁 TSK İHA/SİHA"
-                elif is_tsk:
-                    color = "#3399FF"
-                    icon_type = "🎖️ TSK ASKERİ UÇAK"
-                else:
-                    color = "#00FFCC"
-                    icon_type = "✈️ CANLI SİVİL UÇAK"
+                color = "#FF0055" if is_ghost else ("#FF3300" if is_risk else ("#00FF66" if is_uav else "#00FFCC"))
+                hover_text = f"{row['ucak_id']} | Birim: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m"
                 
-                hover_text = f"{icon_type}: {row['ucak_id']} | Birim: {row['havayolu']} | Rota: {row['kalkis']} ➔ {row['varis']} | İrtifa: {row['irtifa_m']}m | Hız: {row['hiz_kmh']} km/h"
-                
-                folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=3 if is_ghost else 1.5, dash_array="5, 10" if is_ghost else None).add_to(m)
+                folium.PolyLine(locations=row['lokasyonlar'], color=color, weight=3 if is_ghost else 1.5).add_to(m)
                 folium.CircleMarker(
-                    location=(row['lat'], row['lon']), 
-                    radius=9 if is_ghost else (7 if is_uav else 5), 
-                    color=color, 
-                    fill=True, 
-                    fill_color=color,
-                    tooltip=hover_text
+                    location=(row['lat'], row['lon']), radius=9 if is_ghost else 6, color=color, fill=True, fill_color=color, tooltip=hover_text
                 ).add_to(m)
 
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
         with c2:
-            st.subheader("🔎 CANLI UÇUŞ DETAYI & SESLİ TELSİZ")
+            st.subheader("🔎 TAKTİK HEDEF İNCELEME & SESLİ TELSİZ")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique())
             
             if secili_ucak:
@@ -459,53 +371,66 @@ if not df.empty:
                 
                 st.markdown(f"""
                 <div class="flight-card">
-                    <h3 style="margin:0; color:#00aaff;">✈️ {u['ucak_id']} Taktik İnceleme</h3>
-                    <p style="margin:5px 0; color:#aaa;"><b>Birliki/Operatör:</b> {u['havayolu']}</p>
-                    <hr style="border-color:#23293a;">
-                    <p style="font-size:14px; margin:5px 0;"><b>🛫 En Yakın Kalkış Üssü:</b> <span style="color:#00ffcc;">{u['kalkis']}</span></p>
-                    <p style="font-size:14px; margin:5px 0;"><b>🛬 Tahmini Varış Üssü:</b> <span style="color:#ffcc00;">{u['varis']}</span></p>
-                    <p style="margin:5px 0;"><b>⏰ Uçuş Durumu:</b> {u['kalkis_saat']} (Canlı ADS-B)</p>
-                    <hr style="border-color:#23293a;">
-                    <p style="margin:3px 0;"><b>🆔 ICAO / SQUAWK:</b> <code>{u['icao24']}</code></p>
-                    <p style="margin:3px 0;"><b>📈 Anlık İrtifa:</b> {u['irtifa_m']} metre</p>
-                    <p style="margin:3px 0;"><b>🚀 Anlık Hız:</b> {u['hiz_kmh']} km/s</p>
-                    <p style="margin:3px 0;"><b>🧭 Uçuş Yönü:</b> {u['yon_deg']}°</p>
+                    <h3 style="margin:0; color:#00ff66;">🎯 TARGET LOCK: {u['ucak_id']}</h3>
+                    <p style="margin:5px 0; color:#aaa;"><b>Birlik/Operatör:</b> {u['havayolu']}</p>
+                    <hr style="border-color:#00ff66;">
+                    <p style="margin:3px 0;"><b>🛫 Kalkış:</b> <span style="color:#00ffcc;">{u['kalkis']}</span></p>
+                    <p style="margin:3px 0;"><b>🛬 Varış:</b> <span style="color:#ffcc00;">{u['varis']}</span></p>
+                    <p style="margin:3px 0;"><b>🆔 SQUAWK:</b> <code>{u['icao24']}</code></p>
+                    <p style="margin:3px 0;"><b>📈 İrtifa:</b> {u['irtifa_m']} m | <b>🚀 Hız:</b> {u['hiz_kmh']} km/h</p>
+                    <p style="margin:3px 0;"><b>🧭 Vektör Yönü:</b> {u['yon_deg']}°</p>
                     <p style="margin:3px 0;"><b>⚠️ AI Risk Skoru:</b> %{u['risk_skoru']*100:.1f}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # --- SESLİ TAKTİK TELSİZ KOMUTA HTML5/JS MODÜLÜ ---
+                # CIZIRTILI & ASKERİ ROGER BEEP SESLİ TELSİZ MODÜLÜ
                 st.markdown("---")
-                st.subheader("🎙️ CANLI SESLİ TELSİZ (MİKROFON / HOPARLÖR)")
+                st.subheader("📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)")
                 
                 is_ghost_val = "true" if u['is_ghost'] else "false"
                 callsign_val = str(u['ucak_id'])
                 
                 voice_html = f"""
                 <div class="voice-card">
-                    <p style="color:#00f0ff; font-weight:bold; margin-bottom:8px;">🎙️ Mikrofona Basıp Konuşun:</p>
-                    <button id="recordBtn" onclick="startSpeech()" style="background:#0055ff; color:white; border:none; padding:10px 18px; border-radius:5px; font-size:14px; cursor:pointer; font-weight:bold;">
-                        🔴 MİKROFONA KONUŞ (SESLİ KOMUT GÖNDER)
+                    <p style="color:#00ff66; font-weight:bold; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
+                    <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:14px; cursor:pointer; font-weight:bold; width:100%;">
+                        🔴 MANDALA BAS & TELSİZDEN TALİMAT VER
                     </button>
-                    <p id="speechStatus" style="color:#aaa; font-size:13px; margin-top:8px;">Durum: Beklemede...</p>
-                    <hr style="border-color:#23293a;">
-                    <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / Otonom İHA Sesli Yanıtı:</p>
-                    <div id="replyBox" style="background:#0b0e14; padding:10px; border-radius:5px; color:#ffffff; font-family:monospace; min-height:40px;">
+                    <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
+                    <hr style="border-color:#00ff66;">
+                    <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
+                    <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px;">
                         [Telsiz Sessiz]
                     </div>
                 </div>
 
                 <script>
-                function speakText(text) {{
-                    if ('speechSynthesis' in window) {{
-                        window.speechSynthesis.cancel();
-                        var msg = new SpeechSynthesisUtterance();
-                        msg.text = text;
-                        msg.lang = 'tr-TR';
-                        msg.rate = 1.0;
-                        msg.pitch = 0.9;
-                        window.speechSynthesis.speak(msg);
-                    }}
+                // Askeri Telsiz Cızırtısı ve Roger Beep Sentezleyici
+                function playRadioBeepAndSpeak(text) {{
+                    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Mandal Sesi (Roger Beep)
+                    var osc = audioCtx.createOscillator();
+                    var gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+
+                    setTimeout(function() {{
+                        if ('speechSynthesis' in window) {{
+                            window.speechSynthesis.cancel();
+                            var msg = new SpeechSynthesisUtterance();
+                            msg.text = text;
+                            msg.lang = 'tr-TR';
+                            msg.rate = 1.0;
+                            msg.pitch = 0.85; // Telsiz tonu için hafif kalın ses
+                            window.speechSynthesis.speak(msg);
+                        }}
+                    }}, 200);
                 }}
 
                 function startSpeech() {{
@@ -522,30 +447,25 @@ if not df.empty:
                     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     var recognition = new SpeechRecognition();
                     recognition.lang = 'tr-TR';
-                    recognition.interimResults = false;
 
-                    status.innerHTML = "🎙️ DİNLENİYOR... Lütfen konuşun!";
+                    status.innerHTML = "🎙️ TELSİZ KANALI AÇIK... Lütfen konuşun!";
                     recognition.start();
 
                     recognition.onresult = function(event) {{
                         var transcript = event.results[0][0].transcript;
-                        status.innerHTML = "<b>İletilen Sesli Komut:</b> '" + transcript + "'";
+                        status.innerHTML = "<b>İletilen Telsiz Mesajı:</b> '" + transcript + "'";
                         
                         setTimeout(function() {{
                             if (isGhost) {{
-                                var answer = "Cızırtı... Yanıt alınamadı. Hedef Squawk veya Telsiz sinyali vermiyor!";
+                                var answer = "Cızırtı... Yanıt alınamadı. SQUAWK Sinyali Yok!";
                                 reply.innerHTML = "❌ " + answer;
-                                speakText("Sinyal yok. Hedef yanıt vermiyor.");
+                                playRadioBeepAndSpeak("Sinyal yok. Hedef yanıt vermiyor.");
                             }} else {{
-                                var answer = "Anlaşıldı komutanım. " + target + " çağrı kodlu canlı unsur komutunuzu aldı, rota güncelleniyor.";
+                                var answer = "Anlaşıldı komutanım. " + target + " telsiz mesajınızı aldı. Rota güncelleniyor.";
                                 reply.innerHTML = "✅ " + answer;
-                                speakText(answer);
+                                playRadioBeepAndSpeak(answer);
                             }}
-                        }}, 800);
-                    }};
-
-                    recognition.onerror = function(event) {{
-                        status.innerHTML = "⚠️ Mikrofon hatası veya erişim reddedildi.";
+                        }}, 600);
                     }};
                 }}
                 </script>
@@ -568,7 +488,7 @@ if not df.empty:
         )
 
         view_state = pdk.ViewState(latitude=39.0, longitude=35.0, zoom=5.5, pitch=45, bearing=15)
-        r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nRota: {kalkis} -> {varis}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
+        r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
         st.pydeck_chart(r, use_container_width=True)
 
     if oto_yenile:
