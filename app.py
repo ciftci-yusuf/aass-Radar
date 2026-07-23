@@ -95,6 +95,48 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
+    
+    /* RADAR ANIMATION HUD */
+    .radar-container {
+        position: relative;
+        width: 100%;
+        height: 120px;
+        background: #020b08;
+        border: 1px solid #00ff66;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        box-shadow: 0 0 15px rgba(0,255,102,0.2);
+    }
+    .radar-sweep {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 200px;
+        height: 200px;
+        margin-top: -100px;
+        margin-left: -100px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,255,102,0.3);
+        background: conic-gradient(from 0deg, rgba(0, 255, 102, 0.4) 0deg, transparent 60deg);
+        animation: radarSpin 3s linear infinite;
+    }
+    @keyframes radarSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .radar-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: #00ff66;
+        border-radius: 50%;
+        margin-top: -4px;
+        margin-left: -4px;
+        box-shadow: 0 0 10px #00ff66;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -141,8 +183,17 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — CANLI HAVA SAHASI SAVUNMA & İZLEME MERKEZİ</h1>', unsafe_allow_html=True)
-st.caption("Anlık Canlı Takip Entegrasyonu, Otonom Önleme Geometrisi, Taktik Telsiz & C4ISR HUD Katmanı")
+st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — AESA RADAR & HAVA SAHASI SAVUNMA MERKEZİ</h1>', unsafe_allow_html=True)
+st.caption("AESA Radar İstasyonları, Canlı İzleme Modülü, Otonom Önleme & Taktik Telsiz")
+
+# --- TÜRKİYE KRİTİK RADAR İSTASYONLARI ---
+RADAR_ISTASYONLARI = [
+    {"kod": "RADAR-KURECIK", "ad": "Kürecik AN/TPY-2 Erken İhbar Radarı", "lat": 38.351, "lon": 37.802, "menzil_km": 400},
+    {"kod": "RADAR-AHLATLIBEL", "ad": "Ankara Ahlatlıbel Hava Radar Mevzii", "lat": 39.815, "lon": 32.812, "menzil_km": 300},
+    {"kod": "RADAR-CANAKKALE", "ad": "Çanakkale Radar Komutanlığı", "lat": 40.150, "lon": 26.410, "menzil_km": 250},
+    {"kod": "RADAR-DATCA", "ad": "Muğla Datça Radar İstasyonu", "lat": 36.720, "lon": 27.680, "menzil_km": 250},
+    {"kod": "RADAR-MERZIFON", "ad": "Merzifon AESA Taktik Radarı", "lat": 40.830, "lon": 35.510, "menzil_km": 350}
+]
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
@@ -367,6 +418,7 @@ st.sidebar.title("🎛️ C4ISR COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TARAMASI", value=True)
 refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
+goster_radarlar = st.sidebar.checkbox("📡 Radar İstasyonlarını Haritada Göster", value=True)
 sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
 
@@ -403,6 +455,15 @@ if not df.empty:
     else:
         st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye Hava Sahası Tam Güvenlik Altında.</div>', unsafe_allow_html=True)
 
+    # RADAR TARAMA ANIMASYON HUD
+    st.markdown("""
+        <div class="radar-container">
+            <div class="radar-sweep"></div>
+            <div class="radar-center"></div>
+            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 AESA RADAR SWEEP ACTIVE: 360° FREQUENCY LOCK</div>
+        </div>
+    """, unsafe_allow_html=True)
+
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Vektör", len(df))
     m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
@@ -418,12 +479,11 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Canlı İzleme", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Radar Taraması", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
         
-        # Seçili Uçak Tespiti
         secili_ucak_id = st.session_state.get('secili_ucak', df['ucak_id'].iloc[0])
         secili_row = df[df['ucak_id'] == secili_ucak_id]
         
@@ -438,6 +498,7 @@ if not df.empty:
             tiles_type = "Stamen Terrain" if sar_katmani else "CartoDB dark_matter"
             m = folium.Map(location=map_center, zoom_start=map_zoom, tiles=tiles_type)
             
+            # HAVALİMANLARI
             for h in HAVALIMANLARI:
                 is_askeri = "TSK" in h["tip"] or "NATO" in h["tip"]
                 icon_color = "red" if is_askeri else "blue"
@@ -446,6 +507,26 @@ if not df.empty:
                     popup=f"<b>{h['ad']} ({h['kod']})</b>",
                     icon=folium.Icon(color=icon_color, icon="star" if is_askeri else "plane", prefix="fa")
                 ).add_to(m)
+
+            # RADAR İSTASYONLARI VE KAPSAMA HALKALARI
+            if goster_radarlar:
+                for r in RADAR_ISTASYONLARI:
+                    folium.Marker(
+                        location=[r["lat"], r["lon"]],
+                        popup=f"<b>📡 {r['ad']}</b><br>Menzil: {r['menzil_km']} km",
+                        tooltip=f"📡 RADAR: {r['kod']}",
+                        icon=folium.Icon(color="green", icon="rss", prefix="fa")
+                    ).add_to(m)
+                    
+                    # Radar Kapsama Çemberi
+                    folium.Circle(
+                        location=[r["lat"], r["lon"]],
+                        radius=r["menzil_km"] * 1000,
+                        color="#00ff66",
+                        weight=1,
+                        fill=True,
+                        fill_opacity=0.04
+                    ).add_to(m)
 
             if len(ghost_df) > 0:
                 g_target = ghost_df.iloc[0]
@@ -488,8 +569,6 @@ if not df.empty:
             
             if secili_ucak:
                 u = df[df['ucak_id'] == secili_ucak].iloc[0]
-                
-                # Flightradar24 Canlı İzleme Bağlantısı
                 fr24_url = f"https://www.flightradar24.com/{u['ucak_id']}"
                 
                 st.markdown(f"""
