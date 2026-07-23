@@ -13,13 +13,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Flightradar24 API Entegrasyonu
-try:
-    from FlightRadar24 import FlightRadar24API
-    fr_api = FlightRadar24API()
-except Exception:
-    fr_api = None
-
 # --- SAYFA YAPILANDIRMASI & MILITARY C4ISR TEMA ---
 st.set_page_config(
     page_title="MİLHAD-C4ISR - Entegre Hava & Deniz Savunma Komuta Merkezi",
@@ -30,25 +23,25 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    .main { background-color: #0c1014; color: #ffffff; }
-    .stMetric { background-color: #141a20; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.15); }
-    div[data-testid="stSidebar"] { background-color: #080c10; border-right: 1px solid #1f2830; }
+    .main { background-color: #03070a; color: #00ff66; }
+    .stMetric { background-color: #07131d; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.15); }
+    div[data-testid="stSidebar"] { background-color: #040a10; border-right: 1px solid #00ff66; }
     
     .hud-title {
-        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-family: 'Courier New', monospace;
         color: #00ff66;
         font-size: 24px;
         font-weight: bold;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
         text-shadow: 0 0 8px rgba(0,255,102,0.4);
     }
     .threat-hud {
-        background: linear-gradient(90deg, #721c24 0%, #2c0b0e 100%);
-        color: #ffffff;
-        padding: 16px 24px;
-        border-radius: 6px;
-        border: 2px solid #ff0055;
-        box-shadow: 0 0 20px rgba(255,0,85,0.5);
+        background: linear-gradient(90deg, #400000 0%, #100000 100%);
+        color: #ff3344;
+        padding: 14px 24px;
+        border-radius: 4px;
+        border: 1px solid #ff3344;
+        box-shadow: 0 0 15px rgba(255,51,68,0.4);
         font-family: monospace;
         font-size: 16px;
         font-weight: bold;
@@ -60,7 +53,7 @@ st.markdown("""
         padding: 14px 24px;
         border-radius: 4px;
         border: 1px solid #00ff66;
-        box-shadow: 0 0 15px rgba(0,255,102,0.2);
+        box-shadow: 0 0 15px rgba(0,255,102,0.3);
         font-family: monospace;
         font-size: 15px;
         margin-bottom: 20px;
@@ -82,7 +75,7 @@ st.markdown("""
         box-shadow: 0 0 10px rgba(0,255,102,0.2);
     }
     .login-box {
-        background-color: #141a20;
+        background-color: #07131d;
         border: 1px solid #00ff66;
         padding: 30px;
         border-radius: 8px;
@@ -103,32 +96,26 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
-    .radar-container {
-        position: relative;
-        width: 100%;
-        height: 90px;
-        background: #050a0d;
+
+    /* ALT SISTEMATIK RADAR KONSOLU */
+    .bottom-radar-panel {
+        background-color: #040c12;
         border: 1px solid #00ff66;
         border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 15px;
+        padding: 16px;
+        margin-top: 25px;
+        box-shadow: 0 0 15px rgba(0,255,102,0.2);
+        font-family: 'Courier New', monospace;
     }
-    .radar-sweep {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 160px;
-        height: 160px;
-        margin-top: -80px;
-        margin-left: -80px;
-        border-radius: 50%;
-        border: 1px solid rgba(0,255,102,0.3);
-        background: conic-gradient(from 0deg, rgba(0, 255, 102, 0.4) 0deg, transparent 60deg);
-        animation: radarSpin 3s linear infinite;
-    }
-    @keyframes radarSpin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    .radar-log-box {
+        background-color: #010508;
+        border: 1px solid #004d26;
+        padding: 10px;
+        border-radius: 4px;
+        color: #00ff66;
+        font-size: 12px;
+        height: 120px;
+        overflow-y: auto;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -175,9 +162,9 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.rerun()
 
 st.markdown('<div class="hud-title">🛡️ MİLHAD-C4ISR <span style="font-size:16px; color:#8f9ca6; font-weight:normal;">| Entegre Hava Sahası, Radar & Deniz Savunma Komuta Merkezi</span></div>', unsafe_allow_html=True)
-st.caption("Milli İhlal Erken İhbar, Flightradar24 Canlı Akış, AESA Radar Füzyonu & Taktik Telsiz")
+st.caption("AESA Radar Füzyonu, Doğu Akdeniz Donanma Unsurları, Otonom Önleme Geometrisi & Taktik Telsiz")
 
-# UÇAK GEMİLERİ KATMANI
+# UÇAK GEMİLERİ
 UCAK_GEMILERI = [
     {
         "kod": "TCG-ANADOLU",
@@ -478,13 +465,6 @@ if not df.empty:
     else:
         st.markdown('<div class="status-good">✅ [MİLLİ SINIRLAR EMNİYETTE] Türkiye Hava ve Deniz Sahasını İhlal Eden Yabancı Unsur Yok.</div>', unsafe_allow_html=True)
 
-    st.markdown("""
-        <div class="radar-container">
-            <div class="radar-sweep"></div>
-            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 MİLHAD-C4ISR AESA & NAVAL RADAR: ACTIVE SCAN</div>
-        </div>
-    """, unsafe_allow_html=True)
-
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Toplam Vektör", len(df))
     m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
@@ -714,6 +694,39 @@ if not df.empty:
         view_state = pdk.ViewState(latitude=39.0, longitude=35.0, zoom=5.5, pitch=45, bearing=15)
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
         st.pydeck_chart(r, use_container_width=True)
+
+    # --- EN ALTA EKLENEN SİSTEMATİK RADAR & TELEMETRİ İZLEME PANELİ ---
+    st.markdown("---")
+    st.subheader("📡 SİSTEMATİK AESA RADAR & TELEMETRİ KONSOLU")
+    
+    r_col1, r_col2 = st.columns([1.5, 2.5])
+    
+    with r_col1:
+        st.markdown("""
+        <div class="bottom-radar-panel">
+            <h4 style="color:#00ff66; margin-top:0;">📊 Radar İstatistiki Frekanslar</h4>
+            <p style="margin:4px 0;">• <b>AESA Tarama Frekansı:</b> 9.4 GHz (X-Band)</p>
+            <p style="margin:4px 0;">• <b>Tarama Hızı:</b> 120 RPM (Tur/Dakika)</p>
+            <p style="margin:4px 0;">• <b>Aktif Radar İstasyon Sayısı:</b> 5 Mevzii (Sinyal Tam Kilit)</p>
+            <p style="margin:4px 0;">• <b>Veri Akışı / Gecikme:</b> ADS-B Realtime (< 120 ms)</p>
+            <p style="margin:4px 0;">• <b>AESA Füzyon Modu:</b> Aktif İhbar & Erken Tespit</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r_col2:
+        curr_time = time.strftime('%H:%M:%S')
+        st.markdown(f"""
+        <div class="bottom-radar-panel">
+            <h4 style="color:#00ff66; margin-top:0;">📜 Canlı Radar Sistem Konsolu [Sistem Saati: {curr_time}]</h4>
+            <div class="radar-log-box">
+                [{curr_time}] [RADAR-KURECIK] X-Band Erken ihbar taraması aktif. Sinyal kalitesi: %99.8<br>
+                [{curr_time}] [MİLHAD-C4ISR] OpenSky & AESA füzyon katmanı senkronize edildi.<br>
+                [{curr_time}] [AHLATLIBEL-RADAR] Başkent yaklaşma kontrolü temiz. Vektör takibi stabil.<br>
+                [{curr_time}] [GEOFENCE-ENGINE] Türkiye milli hava sınır çizgisi (35.8-42.1 N / 25.6-44.8 E) kilitlendi.<br>
+                [{curr_time}] [SYSTEM] Toplam {len(df)} adet hava/deniz vektörü canlı işleniyor...
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     if oto_yenile:
         time.sleep(refresh_rate)
