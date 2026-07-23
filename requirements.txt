@@ -7,4 +7,4 @@ scikit-learn
 requests
 pydeck
 reportlab
-FlightRadar24
+streamlit-webrtc
