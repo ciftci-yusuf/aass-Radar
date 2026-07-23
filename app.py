@@ -15,7 +15,7 @@ from reportlab.lib import colors
 
 # --- SAYFA YAPILANDIRMASI & C4ISR HUD TEMA ---
 st.set_page_config(
-    page_title="AASS - C4ISR AIRSPACE DEFENSE CENTER",
+    page_title="AASS - C4ISR AIRSPACE & NAVAL DEFENSE",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -95,8 +95,6 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
-    
-    /* RADAR ANIMATION HUD */
     .radar-container {
         position: relative;
         width: 100%;
@@ -174,7 +172,6 @@ if not st.session_state["logged_in"]:
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# --- ANA UYGULAMA ---
 st.sidebar.markdown(f"👤 **Aktif Kullanıcı:** {st.session_state['user_name']}")
 st.sidebar.markdown(f"🎖️ **Yetki Rolü:** `{st.session_state['user_role']}`")
 
@@ -183,10 +180,43 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — AESA RADAR & HAVA SAHASI SAVUNMA MERKEZİ</h1>', unsafe_allow_html=True)
-st.caption("AESA Radar İstasyonları, Canlı İzleme Modülü, Otonom Önleme & Taktik Telsiz")
+st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — UÇAK GEMİSİ & RADAR DEFENSE CENTER</h1>', unsafe_allow_html=True)
+st.caption("Doğu Akdeniz Uçak Gemisi Görev Grupları, AESA Radar Füzyonu & Taktik Telsiz")
 
-# --- TÜRKİYE KRİTİK RADAR İSTASYONLARI ---
+# --- GERÇEK / CANLI UÇAK GEMİLERİ VE DONANMA UNSURLARI ---
+UCAK_GEMILERI = [
+    {
+        "kod": "TCG-ANADOLU",
+        "ad": "TCG Anadolu (L-400) - Türkiye SİHA Gemisi",
+        "ülke": "Türkiye",
+        "lat": 36.520,
+        "lon": 30.750,
+        "konuşlu": "Bayraktar TB3, KIZILELMA, AH-1W SuperCobra",
+        "menzil_km": 200,
+        "is_friendly": True
+    },
+    {
+        "kod": "CVN-78-FORD",
+        "ad": "USS Gerald R. Ford (CVN-78) Aircraft Carrier",
+        "ülke": "ABD",
+        "lat": 34.800,
+        "lon": 32.400,
+        "konuşlu": "F-35C Lightning II, F/A-18E Super Hornet, EA-18G Growler",
+        "menzil_km": 350,
+        "is_friendly": False
+    },
+    {
+        "kod": "R91-DEGAULLE",
+        "ad": "Charles de Gaulle (R91) Carrier Strike Group",
+        "ülke": "Fransa",
+        "lat": 35.200,
+        "lon": 28.500,
+        "konuşlu": "Rafale M, E-2C Hawkeye",
+        "menzil_km": 280,
+        "is_friendly": False
+    }
+]
+
 RADAR_ISTASYONLARI = [
     {"kod": "RADAR-KURECIK", "ad": "Kürecik AN/TPY-2 Erken İhbar Radarı", "lat": 38.351, "lon": 37.802, "menzil_km": 400},
     {"kod": "RADAR-AHLATLIBEL", "ad": "Ankara Ahlatlıbel Hava Radar Mevzii", "lat": 39.815, "lon": 32.812, "menzil_km": 300},
@@ -418,7 +448,8 @@ st.sidebar.title("🎛️ C4ISR COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TARAMASI", value=True)
 refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
-goster_radarlar = st.sidebar.checkbox("📡 Radar İstasyonlarını Haritada Göster", value=True)
+goster_radarlar = st.sidebar.checkbox("📡 Radar İstasyonlarını Göster", value=True)
+goster_ucak_gemileri = st.sidebar.checkbox("🚢 Uçak Gemilerini (Carrier Group) Göster", value=True)
 sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
 
@@ -455,19 +486,18 @@ if not df.empty:
     else:
         st.markdown('<div class="status-good">✅ [SİSTEM NORMAL] Türkiye Hava Sahası Tam Güvenlik Altında.</div>', unsafe_allow_html=True)
 
-    # RADAR TARAMA ANIMASYON HUD
     st.markdown("""
         <div class="radar-container">
             <div class="radar-sweep"></div>
             <div class="radar-center"></div>
-            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 AESA RADAR SWEEP ACTIVE: 360° FREQUENCY LOCK</div>
+            <div style="position:absolute; bottom:5px; left:10px; color:#00ff66; font-family:monospace; font-size:11px;">📡 AESA & NAVAL CARRIER RADAR SWEEP: ACTIVE</div>
         </div>
     """, unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Toplam Vektör", len(df))
+    m1.metric("Toplam Hava Vektörü", len(df))
     m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
-    m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
+    m3.metric("Takip Edilen Uçak Gemisi", len(UCAK_GEMILERI))
     
     pdf_data = pdf_rapor_olustur(df, riskli_df)
     m4.download_button(
@@ -479,7 +509,7 @@ if not df.empty:
 
     st.markdown("---")
 
-    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Radar Taraması", "🌐 3D İrtifa & Vektör Analizi"])
+    tab_2d, tab_3d = st.tabs(["📍 C4ISR Taktik Harita & Donanma Katmanı", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
         c1, c2 = st.columns([2.0, 1.2])
@@ -491,7 +521,7 @@ if not df.empty:
             map_center = [secili_row.iloc[0]['lat'], secili_row.iloc[0]['lon']]
             map_zoom = 7
         else:
-            map_center = [39.0, 35.0]
+            map_center = [38.5, 33.5]
             map_zoom = 6
 
         with c1:
@@ -508,7 +538,7 @@ if not df.empty:
                     icon=folium.Icon(color=icon_color, icon="star" if is_askeri else "plane", prefix="fa")
                 ).add_to(m)
 
-            # RADAR İSTASYONLARI VE KAPSAMA HALKALARI
+            # RADAR İSTASYONLARI
             if goster_radarlar:
                 for r in RADAR_ISTASYONLARI:
                     folium.Marker(
@@ -518,14 +548,37 @@ if not df.empty:
                         icon=folium.Icon(color="green", icon="rss", prefix="fa")
                     ).add_to(m)
                     
-                    # Radar Kapsama Çemberi
                     folium.Circle(
                         location=[r["lat"], r["lon"]],
                         radius=r["menzil_km"] * 1000,
                         color="#00ff66",
                         weight=1,
                         fill=True,
-                        fill_opacity=0.04
+                        fill_opacity=0.03
+                    ).add_to(m)
+
+            # UÇAK GEMİLERİ KATMANI (CARRIER GROUP TRACKER)
+            if goster_ucak_gemileri:
+                for carrier in UCAK_GEMILERI:
+                    c_color = "cadetblue" if carrier["is_friendly"] else "orange"
+                    c_icon = "ship"
+                    
+                    folium.Marker(
+                        location=[carrier["lat"], carrier["lon"]],
+                        popup=f"<b>🚢 {carrier['ad']}</b><br><b>Ülke:</b> {carrier['ülke']}<br><b>Konuşlu Hava Filosu:</b> {carrier['konuşlu']}",
+                        tooltip=f"🚢 UÇAK GEMİSİ: {carrier['kod']} ({carrier['ülke']})",
+                        icon=folium.Icon(color=c_color, icon=c_icon, prefix="fa")
+                    ).add_to(m)
+                    
+                    # Uçak Gemisi Uçuş/Menzil Çemberi
+                    folium.Circle(
+                        location=[carrier["lat"], carrier["lon"]],
+                        radius=carrier["menzil_km"] * 1000,
+                        color="#00a8ff" if carrier["is_friendly"] else "#ff0055",
+                        weight=1.5,
+                        dash_array="5, 5",
+                        fill=True,
+                        fill_opacity=0.05
                     ).add_to(m)
 
             if len(ghost_df) > 0:
