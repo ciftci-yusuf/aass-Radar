@@ -174,7 +174,6 @@ if not st.session_state["logged_in"]:
             else:
                 st.error("❌ Geçersiz Kimlik Bilgisi!")
                 
-        st.caption("ℹ️ Demo Giriş Bilgileri:<br>• **Komutan:** admin / 1234<br>• **Operatör:** operator / 1234", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
@@ -206,7 +205,7 @@ UCAK_GEMILERI = [
         "ad": "USS Gerald R. Ford (CVN-78) Carrier Group",
         "ülke": "ABD",
         "lat": 35.800,
-        "lon": 28.100, # Türkiye kara sularına/yakın sınıra yaklaşma simülasyonu
+        "lon": 28.100,
         "konuşlu": "F-35C, F/A-18E Super Hornet",
         "menzil_km": 350,
         "is_friendly": False
@@ -234,7 +233,6 @@ HAVALIMANLARI = [
     {"kod": "INCIRLIK", "ad": "İncirlik Hava Üssü", "lat": 37.001, "lon": 35.425, "tip": "🎖️ TSK/NATO Üssü"}
 ]
 
-# MİLLİ SINIR GEONFENCE KONTROLÜ (TÜRKIYE KOORDİNAT POLİGONU İÇİNDE Mİ?)
 def turkiye_sinirlari_icinde_mi(lat, lon):
     return (35.8 <= lat <= 42.1) and (25.6 <= lon <= 44.8)
 
@@ -285,7 +283,6 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                         is_uav = "BAYRAKTAR" in callsign or "AKINCI" in callsign or "ANKA" in callsign
                         is_tsk = is_uav or "TUAF" in callsign or "TURK" in callsign or ulke == "Turkey"
                         
-                        # TÜRKİYE HARİÇ YABANCI SAVAŞ/TEHDİT UNUTU MU?
                         is_foreign_threat = (not is_tsk) and ("F16" in callsign or "F35" in callsign or "MIL" in callsign or "NAVY" in callsign or "NATO" in callsign)
                         
                         kalkis = en_yakin_havalimani(lat, lon)
@@ -378,12 +375,11 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'lokasyonlar': lokasyonlar
             })
 
-    # YABANCI SAVAŞ UÇAĞI MİLLİ SINIR İHLAL SİMÜLASYONU (TÜRKIYE HARİÇ DÜŞMAN UNSUR)
     if radar_fuzyon_aktif:
         np.random.seed(int(time.time()) // 5)
         for g in range(1):
-            lat, lon = 38.2, 26.8 # Ege / İzmir Sınırı Yaklaşması
-            hiz, yon, irtifa = 1450, 85, 2100 # Türkiye sınırına doğru supersonic hızla giren yabancı unsur
+            lat, lon = 38.2, 26.8
+            hiz, yon, irtifa = 1450, 85, 2100
             
             orta_lat, orta_lon = 39.1, 33.5
             mesafe = np.sqrt((lat - orta_lat)**2 + (lon - orta_lon)**2)
@@ -492,7 +488,6 @@ if not df.empty:
     riskli_df = df[df['alarm']].sort_values(by='risk_skoru', ascending=False)
     ihlal_df = df[df['sinir_ihlal']]
 
-    # DÜŞMAN SAVAŞ UÇAĞI SINIR İHLAL UYARISI
     if len(ihlal_df) > 0:
         st.markdown(f'<div class="threat-hud">🚨 [MİLLİ SINIR İHLAL ALARMI] Türkiye Dışından Gelen {len(ihlal_df)} Yabancı Savaş Unsuru Sınırı İhlal Etti! F-16 Önleme Jeti Görevlendirildi!</div>', unsafe_allow_html=True)
     elif len(riskli_df) > 0:
@@ -584,10 +579,9 @@ if not df.empty:
                         icon=folium.Icon(color=c_color, icon="ship", prefix="fa")
                     ).add_to(m)
 
-            # YABANCI SAVAŞ UÇAĞI İHLALİ VARSA F-16 ÖNLEME ÇİZGİSİ
             if len(ihlal_df) > 0:
                 g_target = ihlal_df.iloc[0]
-                base_jet = HAVALIMANLARI[7] # 1. Ana Jet Üssü Eskişehir
+                base_jet = HAVALIMANLARI[7]
                 
                 i_lat, i_lon, t_sec = onleme_noktasi_hesapla(
                     g_target['lat'], g_target['lon'], g_target['hiz_kmh'], g_target['yon_deg'],
