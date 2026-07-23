@@ -63,11 +63,18 @@ st.markdown("""
         border-radius: 8px;
         margin-top: 10px;
     }
+    .voice-card {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
+        border: 1px solid #00f0ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🛡️ AASS — TSK & Otonom Milli Hava Sahası Savunma Merkezi")
-st.caption("Türkiye Geneli Tüm Havalimanları, TSK Filosu & ACARS/Telsiz Taktik İletişim Paneli")
+st.caption("Türkiye Geneli Tüm Havalimanları, TSK Filosu & CANLI SESLİ TAKTİK TELSİZ KOMUTA MODÜLÜ")
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
@@ -441,7 +448,7 @@ if not df.empty:
             st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
 
         with c2:
-            st.subheader("🔎 UÇUŞ DETAYLARI & TAKTİK TELSİZ")
+            st.subheader("🔎 UÇUŞ DETAYLARI & SESLİ TELSİZ KOMUTA")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Vektörü Seçin:", df['ucak_id'].unique())
             
             if secili_ucak:
@@ -464,32 +471,83 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
+                # --- SESLİ TAKTİK TELSİZ KOMUTA HTML5/JS MODÜLÜ ---
                 st.markdown("---")
-                st.subheader("📻 ACARS / VHF TAKTİK TELSİZ MESAJI")
+                st.subheader("🎙️ CANLI SESLİ TELSİZ (MİKROFON / HOPARLÖR)")
                 
-                hazir_komut = st.selectbox(
-                    "Hazır Taktik ACARS Komutu Seçin:",
-                    [
-                        "⚠️ SQUAWK KODUNUZU DÜZELTİN (IDENTIFY YOURSELF)",
-                        "🛑 KRİTİK BÖLGEDEN DERHAL UZAKLAŞIN (DIVERT COURSE)",
-                        "🛬 İNİŞ İÇİN EN YAKIN MİLLİ HAVALİMANINA YÖNLENİN",
-                        "✏️ Özel Telsiz Mesajı Yaz..."
-                    ]
-                )
+                is_ghost_val = "true" if u['is_ghost'] else "false"
+                callsign_val = str(u['ucak_id'])
                 
-                if "Özel" in hazir_komut:
-                    mesaj_metni = st.text_input("Uçağa İletilecek Mesajı Yazın:", value="SQUAWK 7700 TEYİT EDİN.")
-                else:
-                    mesaj_metni = hazir_komut
-                    
-                if st.button("📡 MESAJI ACARS/TELSİZ İLE GÖNDER", type="primary"):
-                    st.toast(f"📡 Mesaj İletiliyor: {u['ucak_id']}...", icon="📡")
-                    time.sleep(1)
-                    
-                    if u['is_ghost']:
-                        st.error("❌ YANIT ALINAMADI: Hedef SQUAWK/ACARS sinyali vermiyor! Düşman unsuru olabilir.")
-                    else:
-                        st.success(f"✅ ACARS ONAYI ALINDI ({u['ucak_id']}): 'Anlaşıldı komutanım, mesaj alındı ve uygulanıyor.'")
+                voice_html = f"""
+                <div class="voice-card">
+                    <p style="color:#00f0ff; font-weight:bold; margin-bottom:8px;">🎙️ Mikrofona Basıp Konuşun veya Metin Yazın:</p>
+                    <button id="recordBtn" onclick="startSpeech()" style="background:#0055ff; color:white; border:none; padding:10px 18px; border-radius:5px; font-size:14px; cursor:pointer; font-weight:bold;">
+                        🔴 MİKROFONA KONUŞ (SESLİ KOMUT GÖNDER)
+                    </button>
+                    <p id="speechStatus" style="color:#aaa; font-size:13px; margin-top:8px;">Durum: Beklemede...</p>
+                    <hr style="border-color:#23293a;">
+                    <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / Otonom İHA Sesli Yanıtı:</p>
+                    <div id="replyBox" style="background:#0b0e14; padding:10px; border-radius:5px; color:#ffffff; font-family:monospace; min-height:40px;">
+                        [Telsiz Sessiz]
+                    </div>
+                </div>
+
+                <script>
+                function speakText(text) {{
+                    if ('speechSynthesis' in window) {{
+                        window.speechSynthesis.cancel();
+                        var msg = new SpeechSynthesisUtterance();
+                        msg.text = text;
+                        msg.lang = 'tr-TR';
+                        msg.rate = 1.0;
+                        msg.pitch = 0.9;
+                        window.speechSynthesis.speak(msg);
+                    }}
+                }}
+
+                function startSpeech() {{
+                    var status = document.getElementById('speechStatus');
+                    var reply = document.getElementById('replyBox');
+                    var isGhost = {is_ghost_val};
+                    var target = "{callsign_val}";
+
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
+                        status.innerHTML = "⚠️ Tarayıcınız ses tanımayı desteklemiyor. Chrome veya Edge kullanın.";
+                        return;
+                    }}
+
+                    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    var recognition = new SpeechRecognition();
+                    recognition.lang = 'tr-TR';
+                    recognition.interimResults = false;
+
+                    status.innerHTML = "🎙️ DİNLENİYOR... Lütfen konuşun!";
+                    recognition.start();
+
+                    recognition.onresult = function(event) {{
+                        var transcript = event.results[0][0].transcript;
+                        status.innerHTML = "<b>İletilen Sesli Komut:</b> '" + transcript + "'";
+                        
+                        setTimeout(function() {{
+                            if (isGhost) {{
+                                var answer = "Cızırtı... Yanıt alınamadı. Hedef Squawk veya Telsiz sinyali vermiyor!";
+                                reply.innerHTML = "❌ " + answer;
+                                speakText("Sinyal yok. Hedef yanıt vermiyor.");
+                            }} else {{
+                                var answer = "Anlaşıldı komutanım. " + target + " çağrı kodlu unsur komutunuzu aldı, rota güncelleniyor.";
+                                reply.innerHTML = "✅ " + answer;
+                                speakText(answer);
+                            }}
+                        }}, 800);
+                    }};
+
+                    recognition.onerror = function(event) {{
+                        status.innerHTML = "⚠️ Mikrofon hatası veya erişim reddedildi.";
+                    }};
+                }}
+                </script>
+                """
+                st.components.v1.html(voice_html, height=280)
 
     with tab_3d:
         st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
