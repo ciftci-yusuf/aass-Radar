@@ -641,17 +641,24 @@ if not df.empty:
                 if st.session_state["user_role"] == "Komutan":
                     is_ghost_val = "true" if u['is_ghost'] or u['sinir_ihlal'] else "false"
                     callsign_val = str(u['ucak_id'])
+                    speed_val = str(u['hiz_kmh'])
+                    alt_val = str(u['irtifa_m'])
+                    dep_val = str(u['kalkis'])
+                    arr_val = str(u['varis'])
+                    airline_val = str(u['havayolu'])
+                    squawk_val = str(u['icao24'])
+                    ihlal_val = "true" if u['sinir_ihlal'] else "false"
                     
                     voice_html = f"""
                     <div class="voice-card">
-                        <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:8px; font-size:14px;">📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)</p>
-                        <p style="color:#aaa; font-size:12px; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
+                        <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:8px; font-size:14px;">📻 AKILLI VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)</p>
+                        <p style="color:#aaa; font-size:12px; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp İstediğiniz Sorumuzu Sorun:</p>
                         <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:13px; cursor:pointer; font-weight:bold; width:100%;">
-                            🔴 MANDALA BAS & TELSİZDEN TALİMAT VER
+                            🔴 MANDALA BAS & TELSİZDEN TALİMAT VER / SORU SOR
                         </button>
                         <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
                         <hr style="border-color:#00ff66;">
-                        <p style="color:#00ffcc; font-size:12px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
+                        <p style="color:#00ffcc; font-size:12px; font-weight:bold;">🔊 Operatör / Pilot Cevabı (VHF Cızırtılı):</p>
                         <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px; font-size:12px;">
                             [Telsiz Sessiz]
                         </div>
@@ -688,6 +695,13 @@ if not df.empty:
                         var reply = document.getElementById('replyBox');
                         var isGhost = {is_ghost_val};
                         var target = "{callsign_val}";
+                        var speed = "{speed_val}";
+                        var alt = "{alt_val}";
+                        var dep = "{dep_val}";
+                        var arr = "{arr_val}";
+                        var airline = "{airline_val}";
+                        var squawk = "{squawk_val}";
+                        var isIhlal = {ihlal_val};
 
                         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
                             status.innerHTML = "⚠️ Tarayıcınız ses tanımayı desteklemiyor. Chrome veya Edge kullanın.";
@@ -703,18 +717,37 @@ if not df.empty:
 
                         recognition.onresult = function(event) {{
                             var transcript = event.results[0][0].transcript;
-                            status.innerHTML = "<b>İletilen Telsiz Mesajı:</b> '" + transcript + "'";
+                            status.innerHTML = "<b>Söylenen Mesaj:</b> '" + transcript + "'";
+                            var lower = transcript.toLowerCase();
                             
                             setTimeout(function() {{
+                                var answer = "";
                                 if (isGhost) {{
-                                    var answer = "Cızırtı... Yanıt alınamadı. Yabancı Unsur İhlal Sinyali Vermiyor!";
-                                    reply.innerHTML = "❌ " + answer;
-                                    playRadioBeepAndSpeak("Sinyal yok. Yabancı ihlal unsuru yanıt vermiyor.");
+                                    answer = "Cızırtı... Yanıt alınamadı. Yabancı Unsur İhlal Sinyali Vermiyor!";
+                                }} else if (lower.includes("hız") || lower.includes("hızı") || lower.includes("kaçla")) {{
+                                    answer = "Komutanım, " + target + " kodlu unsurun anlık hızı saatte " + speed + " kilometredir.";
+                                }} else if (lower.includes("irtifa") || lower.includes("yükseklik") || lower.includes("kaç metre")) {{
+                                    answer = "Komutanım, " + target + " radar ölçümünde irtifası " + alt + " metredir.";
+                                }} else if (lower.includes("nereden") || lower.includes("kalktı") || lower.includes("kalkış")) {{
+                                    answer = "Komutanım, unsurun kalkış yaptığı bölge " + dep + " olarak kilitlenmiştir.";
+                                }} else if (lower.includes("nereye") || lower.includes("varış") || lower.includes("gidiyor")) {{
+                                    answer = "Komutanım, " + target + " unsurunun varış noktası " + arr + " bölgesidir.";
+                                }} else if (lower.includes("kim") || lower.includes("birlik") || lower.includes("filo") || lower.includes("havayolu")) {{
+                                    answer = "Komutanım, bu hava aracı " + airline + " tarafından işletilmektedir.";
+                                }} else if (lower.includes("ihlal") || lower.includes("tehdit") || lower.includes("durum") || lower.includes("güvenli mi")) {{
+                                    if (isIhlal) {{
+                                        answer = "🚨 DİKKAT KOMUTANIM! " + target + " milli hava sahamızı ihlal etmektedir! Önleme jeti hazır!";
+                                    }} else {{
+                                        answer = "Komutanım, " + target + " unsuru emniyetli rotada seyretmektedir, tehdit oluşturmuyor.";
+                                    }}
+                                }} else if (lower.includes("kod") || lower.includes("transponder") || lower.includes("squawk")) {{
+                                    answer = "Komutanım, hedef transponder kodu " + squawk + " olarak aktiftir.";
                                 }} else {{
-                                    var answer = "Anlaşıldı komutanım. " + target + " telsiz mesajınızı aldı. Rota güncelleniyor.";
-                                    reply.innerHTML = "✅ " + answer;
-                                    playRadioBeepAndSpeak(answer);
+                                    answer = "Anlaşıldı komutanım. '" + transcript + "' talimatınız radar merkezince kopyalandı, gereği yapılıyor.";
                                 }}
+                                
+                                reply.innerHTML = "✅ " + answer;
+                                playRadioBeepAndSpeak(answer);
                             }}, 600);
                         }};
                     }}
