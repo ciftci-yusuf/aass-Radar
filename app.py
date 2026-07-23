@@ -21,7 +21,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# MILITARY HUD STYLES
 st.markdown("""
     <style>
     .main { background-color: #03070a; color: #00ff66; }
@@ -74,11 +73,64 @@ st.markdown("""
         margin-top: 15px;
         box-shadow: 0 0 10px rgba(0,255,102,0.2);
     }
+    .login-box {
+        background-color: #07131d;
+        border: 1px solid #00ff66;
+        padding: 30px;
+        border-radius: 8px;
+        max-width: 450px;
+        margin: 50px auto;
+        box-shadow: 0 0 20px rgba(0,255,102,0.3);
+        font-family: monospace;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# --- OTURUM YÖNETİMİ (LOGIN / AUTHENTICATION) ---
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+if "user_role" not in st.session_state:
+    st.session_state["user_role"] = None
+
+if not st.session_state["logged_in"]:
+    st.markdown('<h1 class="hud-title" style="text-align:center;">🛡️ AASS C4ISR KOMUTA MERKEZİ GİRİŞİ</h1>', unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.subheader("🔑 Kimlik Doğrulama Paneli")
+        username = st.text_input("Kullanıcı Adı / Sicil No:")
+        password = st.text_input("Giriş Parolası:", type="password")
+        
+        c1, c2 = st.columns(2)
+        if c1.button("🔑 GİRİŞ YAP", type="primary"):
+            if username == "admin" and password == "1234":
+                st.session_state["logged_in"] = True
+                st.session_state["user_role"] = "Komutan"
+                st.session_state["user_name"] = "Hava Savunma Komutanı"
+                st.rerun()
+            elif username == "operator" and password == "1234":
+                st.session_state["logged_in"] = True
+                st.session_state["user_role"] = "Operatör"
+                st.session_state["user_name"] = "Radar Nöbetçi Operatörü"
+                st.rerun()
+            else:
+                st.error("❌ Geçersiz Kimlik Bilgisi!")
+                
+        st.caption("ℹ️ Demo Giriş Bilgileri:<br>• **Komutan:** admin / 1234<br>• **Operatör:** operator / 1234", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
+
+# --- ANA UYGULAMA ---
+st.sidebar.markdown(f"👤 **Aktif Kullanıcı:** {st.session_state['user_name']}")
+st.sidebar.markdown(f"🎖️ **Yetki Rolü:** `{st.session_state['user_role']}`")
+
+if st.sidebar.button("🚪 OTurumu Kapat"):
+    st.session_state["logged_in"] = False
+    st.session_state["user_role"] = None
+    st.rerun()
+
 st.markdown('<h1 class="hud-title">🛡️ AASS C4ISR — ASKERİ HAVA SAHASI SAVUNMA & ÖNLEME SİSTEMİ</h1>', unsafe_allow_html=True)
-st.caption("Otonom Önleme Geometrisi, C4ISR HUD Arayüzü, Taktik Telsiz & SAR Katmanı")
+st.caption("Otonom Önleme Geometrisi, C4ISR HUD Arayüzü, Taktik Telsiz & RBAC Güvenlik Katmanı")
 
 HAVALIMANLARI = [
     {"kod": "ADA", "ad": "Adana Havalimanı", "lat": 36.982, "lon": 35.280, "tip": "Sivil"},
@@ -103,9 +155,7 @@ def en_yakin_havalimani(lat, lon):
             secilen = h
     return secilen
 
-# ÖNLEME GEOMETRİSİ HESAPLAYICI (INTERCEPTION POINT)
 def onleme_noktasi_hesapla(target_lat, target_lon, target_speed, target_heading, base_lat, base_lon, jet_speed=1800):
-    # F-16 supersonic hızı ile hedef uçak arasındaki buluşma noktasını hesaplar
     t_rad = np.radians(target_heading)
     v_target_x = target_speed * np.sin(t_rad)
     v_target_y = target_speed * np.cos(t_rad)
@@ -113,8 +163,7 @@ def onleme_noktasi_hesapla(target_lat, target_lon, target_speed, target_heading,
     dx = (target_lon - base_lon) * 111000
     dy = (target_lat - base_lat) * 111000
     
-    # Basitleştirilmiş vektörel kesişim süresi
-    t_intercept = np.sqrt(dx**2 + dy**2) / (jet_speed * 1000 / 3600) # Saniye
+    t_intercept = np.sqrt(dx**2 + dy**2) / (jet_speed * 1000 / 3600)
     
     intercept_lat = target_lat + (v_target_y * (t_intercept / 3600)) / 111
     intercept_lon = target_lon + (v_target_x * (t_intercept / 3600)) / (111 * np.cos(np.radians(target_lat)))
@@ -226,7 +275,6 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
                 'lokasyonlar': lokasyonlar
             })
 
-    # DÜŞMAN GÖLGE TEMAS
     if radar_fuzyon_aktif:
         np.random.seed(int(time.time()) // 5)
         for g in range(1):
@@ -263,6 +311,45 @@ def ucak_verisi_getir(radar_fuzyon_aktif):
             
     return pd.DataFrame(ucak_listesi)
 
+def pdf_rapor_olustur(dataframe, riskliler):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#003366"), spaceAfter=12)
+    story.append(Paragraph("AASS RESMİ TSK TAKTİK MÜDAHALE RAPORU", title_style))
+    story.append(Paragraph(f"<b>Rapor Tarihi:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Paragraph(f"<b>Raporu Oluşturan Yetkili:</b> {st.session_state.get('user_name', 'Bilinmiyor')} ({st.session_state.get('user_role', 'Rol Yok')})", styles['Normal']))
+    story.append(Spacer(1, 15))
+
+    story.append(Paragraph(f"<b>Toplam Takip Edilen Vektör:</b> {len(dataframe)}", styles['Normal']))
+    story.append(Paragraph(f"<b>Tespit Edilen Tehdit/Risk Sayısı:</b> {len(riskliler)}", styles['Normal']))
+    story.append(Spacer(1, 15))
+
+    story.append(Paragraph("<b>🚨 KRİTİK TEHDİT & İHLAL LİSTESİ</b>", styles['Heading2']))
+    
+    table_data = [["Çağrı Kodu", "Birlik/Operatör", "Kalkış ➔ Varış", "İrtifa (m)", "Risk Skoru"]]
+    for _, row in riskliler.iterrows():
+        table_data.append([row['ucak_id'], row['havayolu'], f"{row['kalkis']} ➔ {row['varis']}", str(row['irtifa_m']), f"%{row['risk_skoru']*100:.1f}"])
+
+    if len(table_data) > 1:
+        t = Table(table_data, colWidths=[90, 130, 130, 70, 70])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#721c24")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f8d7da")),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(t)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 # --- SIDEBAR KONTROL PANELİ ---
 st.sidebar.title("🎛️ C4ISR COMMAND PANEL")
 oto_yenile = st.sidebar.toggle("🔴 CANLI RADAR TARAMASI", value=True)
@@ -270,7 +357,12 @@ refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
 sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
-threshold = st.sidebar.slider("AI Duyarlılık Eşiği", 0.10, 0.90, 0.25, step=0.05)
+
+if st.session_state["user_role"] == "Komutan":
+    threshold = st.sidebar.slider("AI Duyarlılık Eşiği (Komutan Yetkisi)", 0.10, 0.90, 0.25, step=0.05)
+else:
+    threshold = 0.25
+    st.sidebar.info("🔒 AI Duyarlılık Eşiği Komutan yetkisine kilitlidir.")
 
 df = ucak_verisi_getir(radar_fuzyon)
 
@@ -303,7 +395,14 @@ if not df.empty:
     m1.metric("Toplam Vektör", len(df))
     m2.metric("TSK İHA/SİHA", len(df[df['is_uav']]))
     m3.metric("Kritik İhlal Riski", len(riskli_df), delta_color="inverse")
-    m4.metric("AESA Radar Durumu", "AKTİF / FÜZYON")
+    
+    pdf_data = pdf_rapor_olustur(df, riskli_df)
+    m4.download_button(
+        label="📄 TAKTİK MÜDAHALE RAPORU İNDİR",
+        data=pdf_data,
+        file_name=f"AASS_Taktik_Rapor_{int(time.time())}.pdf",
+        mime="application/pdf"
+    )
 
     st.markdown("---")
 
@@ -324,24 +423,21 @@ if not df.empty:
                     icon=folium.Icon(color=icon_color, icon="star" if is_askeri else "plane", prefix="fa")
                 ).add_to(m)
 
-            # EĞER DÜŞMAN GÖLGE HEDEF VARSA OTONOM F-16 ÖNLEME ÇİZGİSİ VE BULUŞMA NOKTASI ÇİZ
             if len(ghost_df) > 0:
                 g_target = ghost_df.iloc[0]
-                base_jet = HAVALIMANLARI[7] # Eskişehir 1. Ana Jet Üssü
+                base_jet = HAVALIMANLARI[7]
                 
                 i_lat, i_lon, t_sec = onleme_noktasi_hesapla(
                     g_target['lat'], g_target['lon'], g_target['hiz_kmh'], g_target['yon_deg'],
                     base_jet['lat'], base_jet['lon']
                 )
                 
-                # F-16 Önleme Rotası
                 folium.PolyLine(
                     locations=[(base_jet['lat'], base_jet['lon']), (i_lat, i_lon)],
                     color="#00ff66", weight=3, dash_array="10, 10",
                     tooltip=f"🚀 SOLOTÜRK F-16 Önleme Vektörü (Tahmini Temas: {t_sec}s)"
                 ).add_to(m)
                 
-                # Önleme / Buluşma Noktası Hedef Çemberi
                 folium.CircleMarker(
                     location=(i_lat, i_lon), radius=12, color="#ff0000", fill=True, fill_color="#ff0000",
                     popup=f"🎯 TAHMİNİ ÖNLEME / TEMAS NOKTASI (Süre: {t_sec} sn)"
@@ -383,94 +479,93 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # CIZIRTILI & ASKERİ ROGER BEEP SESLİ TELSİZ MODÜLÜ
                 st.markdown("---")
                 st.subheader("📻 VHF TAKTİK TELSİZ (MİKROFON / BEEP EFEKTLİ)")
                 
-                is_ghost_val = "true" if u['is_ghost'] else "false"
-                callsign_val = str(u['ucak_id'])
-                
-                voice_html = f"""
-                <div class="voice-card">
-                    <p style="color:#00ff66; font-weight:bold; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
-                    <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:14px; cursor:pointer; font-weight:bold; width:100%;">
-                        🔴 MANDALA BAS & TELSİZDEN TALİMAT VER
-                    </button>
-                    <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
-                    <hr style="border-color:#00ff66;">
-                    <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
-                    <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px;">
-                        [Telsiz Sessiz]
-                    </div>
-                </div>
-
-                <script>
-                // Askeri Telsiz Cızırtısı ve Roger Beep Sentezleyici
-                function playRadioBeepAndSpeak(text) {{
-                    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if st.session_state["user_role"] == "Komutan":
+                    is_ghost_val = "true" if u['is_ghost'] else "false"
+                    callsign_val = str(u['ucak_id'])
                     
-                    // Mandal Sesi (Roger Beep)
-                    var osc = audioCtx.createOscillator();
-                    var gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.15);
+                    voice_html = f"""
+                    <div class="voice-card">
+                        <p style="color:#00ff66; font-weight:bold; margin-bottom:8px;">🎙️ Telsiz Mandalına Basıp Konuşun:</p>
+                        <button id="recordBtn" onclick="startSpeech()" style="background:#002b11; color:#00ff66; border:1px solid #00ff66; padding:10px 18px; border-radius:4px; font-size:14px; cursor:pointer; font-weight:bold; width:100%;">
+                            🔴 MANDALA BAS & TELSİZDEN TALİMAT VER
+                        </button>
+                        <p id="speechStatus" style="color:#aaa; font-size:12px; margin-top:8px;">Telsiz Durumu: Dinleme Modunda...</p>
+                        <hr style="border-color:#00ff66;">
+                        <p style="color:#00ffcc; font-size:13px; font-weight:bold;">🔊 Pilot / İHA Yanıtı (VHF Cızırtılı):</p>
+                        <div id="replyBox" style="background:#000; padding:10px; border:1px solid #00ff66; border-radius:4px; color:#00ff66; font-family:monospace; min-height:40px;">
+                            [Telsiz Sessiz]
+                        </div>
+                    </div>
 
-                    setTimeout(function() {{
-                        if ('speechSynthesis' in window) {{
-                            window.speechSynthesis.cancel();
-                            var msg = new SpeechSynthesisUtterance();
-                            msg.text = text;
-                            msg.lang = 'tr-TR';
-                            msg.rate = 1.0;
-                            msg.pitch = 0.85; // Telsiz tonu için hafif kalın ses
-                            window.speechSynthesis.speak(msg);
-                        }}
-                    }}, 200);
-                }}
+                    <script>
+                    function playRadioBeepAndSpeak(text) {{
+                        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        var osc = audioCtx.createOscillator();
+                        var gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.15);
 
-                function startSpeech() {{
-                    var status = document.getElementById('speechStatus');
-                    var reply = document.getElementById('replyBox');
-                    var isGhost = {is_ghost_val};
-                    var target = "{callsign_val}";
-
-                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                        status.innerHTML = "⚠️ Tarayıcınız ses tanımayı desteklemiyor. Chrome veya Edge kullanın.";
-                        return;
+                        setTimeout(function() {{
+                            if ('speechSynthesis' in window) {{
+                                window.speechSynthesis.cancel();
+                                var msg = new SpeechSynthesisUtterance();
+                                msg.text = text;
+                                msg.lang = 'tr-TR';
+                                msg.rate = 1.0;
+                                msg.pitch = 0.85;
+                                window.speechSynthesis.speak(msg);
+                            }}
+                        }}, 200);
                     }}
 
-                    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    var recognition = new SpeechRecognition();
-                    recognition.lang = 'tr-TR';
+                    function startSpeech() {{
+                        var status = document.getElementById('speechStatus');
+                        var reply = document.getElementById('replyBox');
+                        var isGhost = {is_ghost_val};
+                        var target = "{callsign_val}";
 
-                    status.innerHTML = "🎙️ TELSİZ KANALI AÇIK... Lütfen konuşun!";
-                    recognition.start();
+                        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
+                            status.innerHTML = "⚠️ Tarayıcınız ses tanımayı desteklemiyor. Chrome veya Edge kullanın.";
+                            return;
+                        }}
 
-                    recognition.onresult = function(event) {{
-                        var transcript = event.results[0][0].transcript;
-                        status.innerHTML = "<b>İletilen Telsiz Mesajı:</b> '" + transcript + "'";
-                        
-                        setTimeout(function() {{
-                            if (isGhost) {{
-                                var answer = "Cızırtı... Yanıt alınamadı. SQUAWK Sinyali Yok!";
-                                reply.innerHTML = "❌ " + answer;
-                                playRadioBeepAndSpeak("Sinyal yok. Hedef yanıt vermiyor.");
-                            }} else {{
-                                var answer = "Anlaşıldı komutanım. " + target + " telsiz mesajınızı aldı. Rota güncelleniyor.";
-                                reply.innerHTML = "✅ " + answer;
-                                playRadioBeepAndSpeak(answer);
-                            }}
-                        }}, 600);
-                    }};
-                }}
-                </script>
-                """
-                st.components.v1.html(voice_html, height=280)
+                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        var recognition = new SpeechRecognition();
+                        recognition.lang = 'tr-TR';
+
+                        status.innerHTML = "🎙️ TELSİZ KANALI AÇIK... Lütfen konuşun!";
+                        recognition.start();
+
+                        recognition.onresult = function(event) {{
+                            var transcript = event.results[0][0].transcript;
+                            status.innerHTML = "<b>İletilen Telsiz Mesajı:</b> '" + transcript + "'";
+                            
+                            setTimeout(function() {{
+                                if (isGhost) {{
+                                    var answer = "Cızırtı... Yanıt alınamadı. SQUAWK Sinyali Yok!";
+                                    reply.innerHTML = "❌ " + answer;
+                                    playRadioBeepAndSpeak("Sinyal yok. Hedef yanıt vermiyor.");
+                                }} else {{
+                                    var answer = "Anlaşıldı komutanım. " + target + " telsiz mesajınızı aldı. Rota güncelleniyor.";
+                                    reply.innerHTML = "✅ " + answer;
+                                    playRadioBeepAndSpeak(answer);
+                                }}
+                            }}, 600);
+                        }};
+                    }}
+                    </script>
+                    """
+                    st.components.v1.html(voice_html, height=280)
+                else:
+                    st.warning("🔒 Telsiz kanalı üzerinden talimat verme yetkisi yalnızca 'Komutan' rolüne aittir.")
 
     with tab_3d:
         st.subheader("🌐 3D İrtifa & Sütun Vektör Katmanı")
