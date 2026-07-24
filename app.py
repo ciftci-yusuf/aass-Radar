@@ -22,17 +22,38 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- ARKA PLAN VE ASKERİ C4ISR STİLLERİ ---
 st.markdown("""
     <style>
-    .main { background-color: #03070a; color: #00ff66; }
-    .stMetric { background-color: #07131d; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.15); }
-    div[data-testid="stSidebar"] { background-color: #040a10; border-right: 1px solid #00ff66; }
+    /* ARKA PLAN: TAKTİK IZGARA (GRID) & NEON RADAR GLOW EFEKTİ */
+    .stApp {
+        background-color: #02070d;
+        background-image: 
+            linear-gradient(rgba(0, 255, 102, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 102, 0.04) 1px, transparent 1px),
+            radial-gradient(circle at 50% 30%, #061e17 0%, #02070d 70%);
+        background-size: 30px 30px, 30px 30px, 100% 100%;
+        color: #00ff66;
+    }
+
+    .stMetric { 
+        background-color: rgba(7, 19, 29, 0.85); 
+        border: 1px solid #00ff66; 
+        padding: 12px; 
+        border-radius: 4px; 
+        box-shadow: 0 0 12px rgba(0,255,102,0.15); 
+    }
+    
+    div[data-testid="stSidebar"] { 
+        background-color: #030a10; 
+        border-right: 1px solid #00ff66; 
+    }
     
     /* İRİ, BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
     .hud-title-container {
-        background: linear-gradient(90deg, #051810 0%, #020b08 100%);
+        background: linear-gradient(90deg, rgba(5, 24, 16, 0.9) 0%, rgba(2, 11, 8, 0.9) 100%);
         border: 1px solid #00ff66;
-        border-left: 5px solid #00ff66;
+        border-left: 6px solid #00ff66;
         padding: 18px 24px;
         border-radius: 6px;
         box-shadow: 0 0 20px rgba(0,255,102,0.25);
@@ -52,7 +73,7 @@ st.markdown("""
     .hud-sub-title {
         font-family: 'Courier New', monospace;
         color: #a3ffc7;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: 1.5px;
         text-transform: uppercase;
@@ -84,7 +105,7 @@ st.markdown("""
         margin-bottom: 20px;
     }
     .flight-card {
-        background-color: #07131d;
+        background-color: rgba(7, 19, 29, 0.85);
         border: 1px solid #00a8ff;
         padding: 15px;
         border-radius: 6px;
@@ -92,7 +113,7 @@ st.markdown("""
         font-family: monospace;
     }
     .voice-card {
-        background: #050e17;
+        background: rgba(5, 14, 23, 0.9);
         border: 1px solid #00ff66;
         padding: 15px;
         border-radius: 6px;
@@ -100,13 +121,13 @@ st.markdown("""
         font-family: monospace;
     }
     .login-box {
-        background-color: #07131d;
+        background-color: rgba(7, 19, 29, 0.95);
         border: 1px solid #00ff66;
         padding: 30px;
         border-radius: 8px;
         max-width: 450px;
         margin: 50px auto;
-        box-shadow: 0 0 20px rgba(0,255,102,0.3);
+        box-shadow: 0 0 25px rgba(0,255,102,0.3);
         font-family: monospace;
     }
     .live-stream-btn {
@@ -122,7 +143,7 @@ st.markdown("""
         margin-top: 10px;
     }
     .bottom-radar-panel {
-        background-color: #040c12;
+        background-color: rgba(4, 12, 18, 0.9);
         border: 1px solid #00ff66;
         border-radius: 6px;
         padding: 14px;
