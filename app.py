@@ -49,7 +49,7 @@ st.markdown("""
         border-right: 1px solid #00ff66; 
     }
     
-    /* İRİ, BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
+    /* BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
     .hud-title-container {
         background: linear-gradient(90deg, rgba(5, 24, 16, 0.9) 0%, rgba(2, 11, 8, 0.9) 100%);
         border: 1px solid #00ff66;
@@ -258,7 +258,7 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-# --- YENİLENEN İRİ BÜYÜK HARFLİ C4ISR HUD BAŞLIĞI ---
+# --- C4ISR HUD BAŞLIĞI ---
 st.markdown("""
 <div class="hud-title-container">
     <div class="hud-main-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA SAHASI, RADAR VE DENİZ SAVUNMA KOMUTA MERKEZİ</div>
@@ -733,7 +733,7 @@ if not df.empty:
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
         st.pydeck_chart(r, use_container_width=True)
 
-    # --- EN ALTA EKLENEN CANLI GÖRSEL PPI RADAR EKRANI & KONSOL ---
+    # --- TEK TEK ÇAĞRILAN SİSTEMATİK RADAR KONSOLU ---
     st.markdown("---")
     st.subheader("📡 CANLI AESA RADAR SCOPE & SİSTEMATİK TELEMETRİ KONSOLU")
     
