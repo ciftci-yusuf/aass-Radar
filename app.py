@@ -25,7 +25,6 @@ st.set_page_config(
 # --- ARKA PLAN, SİBER GÜVENLİK VE ASKERİ C4ISR STİLLERİ ---
 st.markdown("""
     <style>
-    /* GLOBAL ARKA PLAN: TAKTİK IZGARA (GRID) & SİBER NEON GLOW */
     .stApp {
         background-color: #02070d;
         background-image: 
@@ -36,7 +35,6 @@ st.markdown("""
         color: #00ff66;
     }
 
-    /* SOL SIDEBAR ASKERİ KAPLAMA */
     div[data-testid="stSidebar"] { 
         background-color: rgba(3, 10, 16, 0.95); 
         background-image: 
@@ -54,7 +52,6 @@ st.markdown("""
         box-shadow: 0 0 12px rgba(0,255,102,0.15); 
     }
     
-    /* BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
     .hud-title-container {
         background: linear-gradient(90deg, rgba(5, 24, 16, 0.95) 0%, rgba(2, 11, 8, 0.95) 100%);
         border: 1px solid #00ff66;
@@ -109,8 +106,6 @@ st.markdown("""
         font-size: 15px;
         margin-bottom: 20px;
     }
-
-    /* SAĞ PANEL KARTLARI */
     .flight-card {
         background-color: rgba(7, 19, 29, 0.9);
         border: 1px solid #00a8ff;
@@ -146,7 +141,6 @@ st.markdown("""
         font-family: monospace;
         font-size: 11px;
     }
-
     .login-box {
         background-color: rgba(7, 19, 29, 0.95);
         border: 1px solid #00ff66;
@@ -169,8 +163,6 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
-
-    /* ALT RADAR KONSOLU */
     .bottom-radar-panel {
         background-color: rgba(4, 12, 18, 0.9);
         border: 1px solid #00ff66;
@@ -308,7 +300,7 @@ st.sidebar.markdown("""
 st.markdown("""
 <div class="hud-title-container">
     <div class="hud-main-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA SAHASI, RADAR VE DENİZ SAVUNMA KOMUTA MERKEZİ</div>
-    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • SİBER ELEKTRONİK HARP (EW) • CANLI TELSİZ MERKEZİ</div>
+    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • SİBER ELEKTRONİK HARP • CANLI TRAFİK KAMERALARI</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -340,6 +332,15 @@ RADAR_ISTASYONLARI = [
     {"kod": "RADAR-CANAKKALE", "ad": "Çanakkale Radar Komutanlığı", "lat": 40.150, "lon": 26.410, "menzil_km": 250},
     {"kod": "RADAR-DATCA", "ad": "Muğla Datça Radar İstasyonu", "lat": 36.720, "lon": 27.680, "menzil_km": 250},
     {"kod": "RADAR-MERZIFON", "ad": "Merzifon AESA Taktik Radarı", "lat": 40.830, "lon": 35.510, "menzil_km": 350}
+]
+
+# CANLI ŞEHİR VE ÜS KAMERALARI
+TRAFIK_KAMERALARI = [
+    {"sehir": "İstanbul (Boğaziçi Köprüsü)", "lat": 41.045, "lon": 29.034, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
+    {"sehir": "Ankara (Kızılay Meydanı)", "lat": 39.920, "lon": 32.854, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
+    {"sehir": "İzmir (Alsancak Liman)", "lat": 38.442, "lon": 27.142, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
+    {"sehir": "Eskişehir (1. Ana Jet Üssü Bölgesi)", "lat": 39.780, "lon": 30.520, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
+    {"sehir": "Antalya (Liman / Sahil Güvenlik)", "lat": 36.884, "lon": 30.705, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"}
 ]
 
 HAVALIMANLARI = [
@@ -577,6 +578,7 @@ refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
 goster_radarlar = st.sidebar.checkbox("📡 Radar İstasyonlarını Göster", value=True)
 goster_ucak_gemileri = st.sidebar.checkbox("🚢 Uçak Gemilerini Göster", value=True)
+goster_kameralar = st.sidebar.checkbox("📹 Canlı Trafik & Üs Kameraları", value=True)
 sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
 
@@ -631,8 +633,8 @@ if not df.empty:
     tab_2d, tab_3d = st.tabs(["📍 MİLHAD-C4ISR Taktik Harita & Önleme Geometrisi", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
-        # SAĞ VE SOL SÜTUN ORANLARI DÜZENLENDİ
-        c1, c2 = st.columns([1.8, 1.4])
+        # HARİTA VE SAĞ PANEL EŞİT 1:1 ORANA GETİRİLEREK BOŞLUK TAMAMEN KAPATILDI
+        c1, c2 = st.columns([1.5, 1.5])
 
         secili_ucak_id = st.session_state.get('secili_ucak', df['ucak_id'].iloc[0])
         secili_row = df[df['ucak_id'] == secili_ucak_id]
@@ -681,6 +683,15 @@ if not df.empty:
                         icon=folium.Icon(color="cadetblue" if carrier["is_friendly"] else "orange", icon="ship", prefix="fa")
                     ).add_to(m)
 
+            # CANLI TRAFİK KAMERALARI
+            if goster_kameralar:
+                for cam in TRAFIK_KAMERALARI:
+                    folium.Marker(
+                        location=[cam["lat"], cam["lon"]],
+                        popup=f"<b>📹 Canlı Kamera: {cam['sehir']}</b>",
+                        icon=folium.Icon(color="purple", icon="video-camera", prefix="fa")
+                    ).add_to(m)
+
             # F-16 ÖNLEME GEOMETRİSİ
             if len(ihlal_df) > 0:
                 g_target = ihlal_df.iloc[0]
@@ -712,10 +723,9 @@ if not df.empty:
                     location=(row['lat'], row['lon']), radius=9 if is_ihlal else 6, color=color, fill=True, fill_color=color, tooltip=hover_text
                 ).add_to(m)
 
-            # HARİTAYA TAM SÜTUN GENİŞLİĞİ VERİLDİ (SAĞ BOŞLUK KALDIRILDI)
             st_folium(m, use_container_width=True, height=620, key="taktik_harita_2d", returned_objects=[])
 
-        # SAĞ TARAFA EKLENEN ZENGİN SİBER GÜVENLİK & TAKTİK C2 KARTLARI
+        # SAĞ TARAFA HEDEF İNCELEME, SİBER GÜVENLİK VE CANLI KAMERA AKIŞI
         with c2:
             st.subheader("🔎 TAKTİK HEDEF İNCELEME & SİBER KONTROL")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique(), key="secili_ucak")
@@ -738,10 +748,20 @@ if not df.empty:
                     <a href="{fr24_url}" target="_blank" class="live-stream-btn">🎥 GERÇEK ZAMANLI CANLI İZLE (FLIGHTRADAR24)</a>
                 </div>
                 """, unsafe_allow_html=True)
+
+                # CANLI ŞEHİR VE ÜS KAMERASI AKIŞ SEÇİMİ
+                st.markdown("""
+                <div class="cyber-card">
+                    <h4 style="margin:0 0 6px 0; color:#ffaa00; font-size:13px;">📹 BÖLGESEL CANLI MOBESE & ÜS KAMERASI</h4>
+                </div>
+                """, unsafe_allow_html=True)
+                secilen_kamera = st.selectbox("İzlemek İstediğiniz Bölge Kamerası:", [c["sehir"] for c in TRAFIK_KAMERALARI])
+                cam_url = next(c["stream"] for c in TRAFIK_KAMERALARI if c["sehir"] == secilen_kamera)
+                st.video(cam_url)
                 
                 # SİBER GÜVENLİK VE ELEKTRONİK HARP (EW) KARTI
                 st.markdown("""
-                <div class="cyber-card">
+                <div class="cyber-card" style="margin-top:10px;">
                     <h4 style="margin:0 0 6px 0; color:#ffaa00; font-size:13px;">🛡️ SİBER GÜVENLİK & SİNYAL DURUMU (EW MONITOR)</h4>
                     <p style="margin:2px 0; font-size:11px;">• <b>GPS Sinyal Karıştırma (Jamming):</b> <span style="color:#00ff66;">%0.0 (TEMİZ)</span></p>
                     <p style="margin:2px 0; font-size:11px;">• <b>Sahte Transponder (Spoofing):</b> <span style="color:#00ff66;">ALGILANMADI</span></p>
