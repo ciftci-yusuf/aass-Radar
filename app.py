@@ -756,10 +756,8 @@ if not df.empty:
                 """, unsafe_allow_html=True)
                 secilen_kamera = st.selectbox("Canlı Yayın Bölgesi Seçin:", [c["sehir"] for c in TRAFIK_KAMERALARI])
                 
-                # Seçilen şehrin YouTube canlı yayın linkini güvenli embed formatına çevirme
                 cam_dict = next(c for c in TRAFIK_KAMERALARI if c["sehir"] == secilen_kamera)
                 
-                # YouTube video ID'yi embed formatında sunma
                 st.markdown(f"""
                 <iframe width="100%" height="240" src="https://www.youtube.com/embed/live_stream?channel=UC1Wp2l0ewVzk" title="Live Cam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 """, unsafe_allow_html=True)
