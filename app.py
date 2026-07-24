@@ -22,36 +22,41 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ARKA PLAN VE ASKERİ C4ISR STİLLERİ ---
+# --- ARKA PLAN, SİBER GÜVENLİK VE ASKERİ C4ISR STİLLERİ ---
 st.markdown("""
     <style>
-    /* ARKA PLAN: TAKTİK IZGARA (GRID) & NEON RADAR GLOW EFEKTİ */
+    /* GLOBAL ARKA PLAN: TAKTİK IZGARA (GRID) & SİBER NEON GLOW */
     .stApp {
         background-color: #02070d;
         background-image: 
-            linear-gradient(rgba(0, 255, 102, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 102, 0.04) 1px, transparent 1px),
-            radial-gradient(circle at 50% 30%, #061e17 0%, #02070d 70%);
-        background-size: 30px 30px, 30px 30px, 100% 100%;
+            linear-gradient(rgba(0, 255, 102, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 102, 0.05) 1px, transparent 1px),
+            radial-gradient(circle at 50% 30%, #062017 0%, #02070d 75%);
+        background-size: 28px 28px, 28px 28px, 100% 100%;
         color: #00ff66;
     }
 
+    /* SOL SIDEBAR ASKERİ KAPLAMA */
+    div[data-testid="stSidebar"] { 
+        background-color: rgba(3, 10, 16, 0.95); 
+        background-image: 
+            linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+        background-size: 20px 28px;
+        border-right: 1px solid #00ff66; 
+    }
+
     .stMetric { 
-        background-color: rgba(7, 19, 29, 0.85); 
+        background-color: rgba(7, 19, 29, 0.9); 
         border: 1px solid #00ff66; 
         padding: 12px; 
         border-radius: 4px; 
         box-shadow: 0 0 12px rgba(0,255,102,0.15); 
     }
     
-    div[data-testid="stSidebar"] { 
-        background-color: #030a10; 
-        border-right: 1px solid #00ff66; 
-    }
-    
     /* BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
     .hud-title-container {
-        background: linear-gradient(90deg, rgba(5, 24, 16, 0.9) 0%, rgba(2, 11, 8, 0.9) 100%);
+        background: linear-gradient(90deg, rgba(5, 24, 16, 0.95) 0%, rgba(2, 11, 8, 0.95) 100%);
         border: 1px solid #00ff66;
         border-left: 6px solid #00ff66;
         padding: 18px 24px;
@@ -104,22 +109,44 @@ st.markdown("""
         font-size: 15px;
         margin-bottom: 20px;
     }
+
+    /* SAĞ PANEL KARTLARI */
     .flight-card {
-        background-color: rgba(7, 19, 29, 0.85);
+        background-color: rgba(7, 19, 29, 0.9);
         border: 1px solid #00a8ff;
         padding: 15px;
         border-radius: 6px;
         box-shadow: 0 0 12px rgba(0,168,255,0.2);
         font-family: monospace;
+        margin-bottom: 15px;
+    }
+    .cyber-card {
+        background: rgba(3, 14, 22, 0.95);
+        border: 1px solid #ffaa00;
+        padding: 14px;
+        border-radius: 6px;
+        box-shadow: 0 0 12px rgba(255,170,0,0.25);
+        font-family: 'Courier New', monospace;
+        margin-bottom: 15px;
     }
     .voice-card {
-        background: rgba(5, 14, 23, 0.9);
+        background: rgba(5, 14, 23, 0.95);
         border: 1px solid #00ff66;
         padding: 15px;
         border-radius: 6px;
         box-shadow: 0 0 10px rgba(0,255,102,0.2);
         font-family: monospace;
     }
+    .side-widget-card {
+        background: rgba(4, 15, 10, 0.9);
+        border: 1px solid #00ff66;
+        padding: 10px 14px;
+        border-radius: 5px;
+        margin-top: 10px;
+        font-family: monospace;
+        font-size: 11px;
+    }
+
     .login-box {
         background-color: rgba(7, 19, 29, 0.95);
         border: 1px solid #00ff66;
@@ -142,6 +169,8 @@ st.markdown("""
         text-decoration: none;
         margin-top: 10px;
     }
+
+    /* ALT RADAR KONSOLU */
     .bottom-radar-panel {
         background-color: rgba(4, 12, 18, 0.9);
         border: 1px solid #00ff66;
@@ -250,6 +279,7 @@ if not st.session_state["logged_in"]:
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
+# SIDEBAR SOL PANEL DOLULUĞU VE TAKTİK WIDGETLAR
 st.sidebar.markdown(f"👤 **Aktif Kullanıcı:** {st.session_state['user_name']}")
 st.sidebar.markdown(f"🎖️ **Yetki Rolü:** `{st.session_state['user_role']}`")
 
@@ -258,11 +288,27 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("""
+<div class="side-widget-card">
+    <b style="color:#ff3344;">🛡️ HARP ALARM SEVİYESİ</b><br>
+    <span style="font-size:14px; font-weight:bold; color:#ffcc00;">DEFCON 2 (YÜKSEK ALARM)</span>
+</div>
+<div class="side-widget-card">
+    <b style="color:#00ff66;">📡 TÜRKSAT UYDU KİLİT</b><br>
+    <span>14 UYDU - 3D GPS FIX METRİK</span>
+</div>
+<div class="side-widget-card">
+    <b style="color:#00a8ff;">🔐 SİBER KALKAN / PING</b><br>
+    <span>AES-256 GÜVENLİ HAT (12 ms)</span>
+</div>
+""", unsafe_allow_html=True)
+
 # --- C4ISR HUD BAŞLIĞI ---
 st.markdown("""
 <div class="hud-title-container">
     <div class="hud-main-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA SAHASI, RADAR VE DENİZ SAVUNMA KOMUTA MERKEZİ</div>
-    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • OTONOM ÖNLEME GEOMETRİSİ • CANLI TELSİZ MERKEZİ</div>
+    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • SİBER ELEKTRONİK HARP (EW) • CANLI TELSİZ MERKEZİ</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -585,7 +631,8 @@ if not df.empty:
     tab_2d, tab_3d = st.tabs(["📍 MİLHAD-C4ISR Taktik Harita & Önleme Geometrisi", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
-        c1, c2 = st.columns([2.0, 1.2])
+        # SAĞ VE SOL SÜTUN ORANLARI DÜZENLENDİ
+        c1, c2 = st.columns([1.8, 1.4])
 
         secili_ucak_id = st.session_state.get('secili_ucak', df['ucak_id'].iloc[0])
         secili_row = df[df['ucak_id'] == secili_ucak_id]
@@ -665,10 +712,12 @@ if not df.empty:
                     location=(row['lat'], row['lon']), radius=9 if is_ihlal else 6, color=color, fill=True, fill_color=color, tooltip=hover_text
                 ).add_to(m)
 
-            st_folium(m, width=800, height=520, key="taktik_harita_2d", returned_objects=[])
+            # HARİTAYA TAM SÜTUN GENİŞLİĞİ VERİLDİ (SAĞ BOŞLUK KALDIRILDI)
+            st_folium(m, use_container_width=True, height=620, key="taktik_harita_2d", returned_objects=[])
 
+        # SAĞ TARAFA EKLENEN ZENGİN SİBER GÜVENLİK & TAKTİK C2 KARTLARI
         with c2:
-            st.subheader("🔎 TAKTİK HEDEF İNCELEME & SESLİ TELSİZ")
+            st.subheader("🔎 TAKTİK HEDEF İNCELEME & SİBER KONTROL")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique(), key="secili_ucak")
             
             if secili_ucak:
@@ -678,8 +727,8 @@ if not df.empty:
                 st.markdown(f"""
                 <div class="flight-card">
                     <h3 style="margin:0; color:#00ff66;">🎯 TARGET LOCK: {u['ucak_id']}</h3>
-                    <p style="margin:5px 0; color:#aaa;"><b>Birlik/Operatör:</b> {u['havayolu']}</p>
-                    <hr style="border-color:#00ff66;">
+                    <p style="margin:4px 0; color:#aaa;"><b>Birlik/Operatör:</b> {u['havayolu']}</p>
+                    <hr style="border-color:#00ff66; margin:8px 0;">
                     <p style="margin:3px 0;"><b>🛫 Kalkış:</b> <span style="color:#00ffcc;">{u['kalkis']}</span></p>
                     <p style="margin:3px 0;"><b>🛬 Varış:</b> <span style="color:#ffcc00;">{u['varis']}</span></p>
                     <p style="margin:3px 0;"><b>🆔 SQUAWK:</b> <code>{u['icao24']}</code></p>
@@ -690,15 +739,24 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.markdown("<br>", unsafe_allow_html=True)
+                # SİBER GÜVENLİK VE ELEKTRONİK HARP (EW) KARTI
+                st.markdown("""
+                <div class="cyber-card">
+                    <h4 style="margin:0 0 6px 0; color:#ffaa00; font-size:13px;">🛡️ SİBER GÜVENLİK & SİNYAL DURUMU (EW MONITOR)</h4>
+                    <p style="margin:2px 0; font-size:11px;">• <b>GPS Sinyal Karıştırma (Jamming):</b> <span style="color:#00ff66;">%0.0 (TEMİZ)</span></p>
+                    <p style="margin:2px 0; font-size:11px;">• <b>Sahte Transponder (Spoofing):</b> <span style="color:#00ff66;">ALGILANMADI</span></p>
+                    <p style="margin:2px 0; font-size:11px;">• <b>ACARS Sinyal Kriptosu:</b> AES-256 KİLİTLİ</p>
+                    <p style="margin:2px 0; font-size:11px;">• <b>AESA Radar Anti-Jamming:</b> OTOMATİK FREKANS ATLAMA AKTİF</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # --- CANLI GERÇEK İNSAN-İNSAN TELSIZ MODÜLÜ (WebRTC) ---
+                # CANLI GERÇEK İNSAN-İNSAN TELSIZ MODÜLÜ (WebRTC)
                 st.markdown(f"""
                 <div class="voice-card">
-                    <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:4px; font-size:14px;">🎙️ CANLI GERÇEK İNSAN TAKTİK TELSİZ HATTI (P2P WEBRTC)</p>
-                    <p style="color:#aaa; font-size:11px; margin-bottom:8px;">
-                        • <b>{st.session_state['user_name']}</b> olarak bağlısınız.<br>
-                        • Karşı taraftaki diğer yetkiliyle eş zamanlı canlı ses iletişimi kurmak için Start butonuna basın.
+                    <p style="color:#00ff66; font-weight:bold; margin-top:0; margin-bottom:4px; font-size:13px;">🎙️ CANLI GERÇEK İNSAN TAKTİK TELSİZ HATTI (P2P WEBRTC)</p>
+                    <p style="color:#aaa; font-size:10px; margin-bottom:6px;">
+                        • <b>{st.session_state['user_name']}</b> bağlı.<br>
+                        • Karşı taraftaki yetkiliyle canlı konuşmak için Start'a basın.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -733,7 +791,7 @@ if not df.empty:
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "Vektör: {ucak_id}\nBirlik: {havayolu}\nİrtifa: {irtifa_m} m\nHız: {hiz_kmh} km/h"})
         st.pydeck_chart(r, use_container_width=True)
 
-    # --- TEK TEK ÇAĞRILAN SİSTEMATİK RADAR KONSOLU ---
+    # --- ALT RADAR KONSOLU ---
     st.markdown("---")
     st.subheader("📡 CANLI AESA RADAR SCOPE & SİSTEMATİK TELEMETRİ KONSOLU")
     
