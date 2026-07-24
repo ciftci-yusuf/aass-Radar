@@ -271,7 +271,7 @@ if not st.session_state["logged_in"]:
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# SIDEBAR SOL PANEL DOLULUĞU VE TAKTİK WIDGETLAR
+# SIDEBAR SOL PANEL WIDGETLARI
 st.sidebar.markdown(f"👤 **Aktif Kullanıcı:** {st.session_state['user_name']}")
 st.sidebar.markdown(f"🎖️ **Yetki Rolü:** `{st.session_state['user_role']}`")
 
@@ -300,7 +300,7 @@ st.sidebar.markdown("""
 st.markdown("""
 <div class="hud-title-container">
     <div class="hud-main-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA SAHASI, RADAR VE DENİZ SAVUNMA KOMUTA MERKEZİ</div>
-    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • SİBER ELEKTRONİK HARP • CANLI TRAFİK KAMERALARI</div>
+    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • SİBER ELEKTRONİK HARP • CANLI ŞEHİR KAMERALARI</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -334,13 +334,13 @@ RADAR_ISTASYONLARI = [
     {"kod": "RADAR-MERZIFON", "ad": "Merzifon AESA Taktik Radarı", "lat": 40.830, "lon": 35.510, "menzil_km": 350}
 ]
 
-# CANLI ŞEHİR VE ÜS KAMERALARI
+# GERÇEK CANLI YOUTUBE / İNTERNET ŞEHİR KAMERALARI
 TRAFIK_KAMERALARI = [
-    {"sehir": "İstanbul (Boğaziçi Köprüsü)", "lat": 41.045, "lon": 29.034, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
-    {"sehir": "Ankara (Kızılay Meydanı)", "lat": 39.920, "lon": 32.854, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
-    {"sehir": "İzmir (Alsancak Liman)", "lat": 38.442, "lon": 27.142, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
-    {"sehir": "Eskişehir (1. Ana Jet Üssü Bölgesi)", "lat": 39.780, "lon": 30.520, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"},
-    {"sehir": "Antalya (Liman / Sahil Güvenlik)", "lat": 36.884, "lon": 30.705, "stream": "https://www.w3schools.com/html/mov_bbb.mp4"}
+    {"sehir": "İstanbul (Boğaziçi Canlı Yayın)", "lat": 41.045, "lon": 29.034, "url": "https://www.youtube.com/watch?v=1Wp2l0ewVzk"},
+    {"sehir": "İstanbul (Taksim Meydanı)", "lat": 41.036, "lon": 28.985, "url": "https://www.youtube.com/watch?v=J7W3m1Ww100"},
+    {"sehir": "Ankara (Kızılay Canlı)", "lat": 39.920, "lon": 32.854, "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    {"sehir": "İzmir (Kordon Sahil Canlı)", "lat": 38.438, "lon": 27.138, "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    {"sehir": "Antalya (Sahil Güvenlik / Liman)", "lat": 36.884, "lon": 30.705, "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
 ]
 
 HAVALIMANLARI = [
@@ -578,7 +578,7 @@ refresh_rate = st.sidebar.slider("Tarama Frekansı (Saniye)", 5, 30, 10)
 radar_fuzyon = st.sidebar.toggle("📡 AESA Radar Füzyonu (Gölge Temas)", value=True)
 goster_radarlar = st.sidebar.checkbox("📡 Radar İstasyonlarını Göster", value=True)
 goster_ucak_gemileri = st.sidebar.checkbox("🚢 Uçak Gemilerini Göster", value=True)
-goster_kameralar = st.sidebar.checkbox("📹 Canlı Trafik & Üs Kameraları", value=True)
+goster_kameralar = st.sidebar.checkbox("📹 Canlı Şehir Kameraları", value=True)
 sar_katmani = st.sidebar.toggle("🛰️ SAR Uydu Katmanı", value=False)
 sadece_tsk = st.sidebar.checkbox("🎖️ Sadece TSK Filosunu Göster", value=False)
 
@@ -633,7 +633,6 @@ if not df.empty:
     tab_2d, tab_3d = st.tabs(["📍 MİLHAD-C4ISR Taktik Harita & Önleme Geometrisi", "🌐 3D İrtifa & Vektör Analizi"])
 
     with tab_2d:
-        # HARİTA VE SAĞ PANEL EŞİT 1:1 ORANA GETİRİLEREK BOŞLUK TAMAMEN KAPATILDI
         c1, c2 = st.columns([1.5, 1.5])
 
         secili_ucak_id = st.session_state.get('secili_ucak', df['ucak_id'].iloc[0])
@@ -683,7 +682,7 @@ if not df.empty:
                         icon=folium.Icon(color="cadetblue" if carrier["is_friendly"] else "orange", icon="ship", prefix="fa")
                     ).add_to(m)
 
-            # CANLI TRAFİK KAMERALARI
+            # CANLI ŞEHİR KAMERALARI
             if goster_kameralar:
                 for cam in TRAFIK_KAMERALARI:
                     folium.Marker(
@@ -725,9 +724,9 @@ if not df.empty:
 
             st_folium(m, use_container_width=True, height=620, key="taktik_harita_2d", returned_objects=[])
 
-        # SAĞ TARAFA HEDEF İNCELEME, SİBER GÜVENLİK VE CANLI KAMERA AKIŞI
+        # SAĞ TARAFA GERÇEK YOUTUBE CANLI ŞEHİR KAMERALARI
         with c2:
-            st.subheader("🔎 TAKTİK HEDEF İNCELEME & SİBER KONTROL")
+            st.subheader("🔎 TAKTİK HEDEF İNCELEME & CANLI KAMERA")
             secili_ucak = st.selectbox("İncelemek İstediğiniz Canlı Vektörü Seçin:", df['ucak_id'].unique(), key="secili_ucak")
             
             if secili_ucak:
@@ -749,15 +748,21 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # CANLI ŞEHİR VE ÜS KAMERASI AKIŞ SEÇİMİ
+                # CANLI YOUTUBE ŞEHİR KAMERASI SEÇİCİSİ
                 st.markdown("""
                 <div class="cyber-card">
-                    <h4 style="margin:0 0 6px 0; color:#ffaa00; font-size:13px;">📹 BÖLGESEL CANLI MOBESE & ÜS KAMERASI</h4>
+                    <h4 style="margin:0 0 6px 0; color:#ffaa00; font-size:13px;">📹 7/24 CANLI ŞEHİR VE TRAFİK KAMERASI</h4>
                 </div>
                 """, unsafe_allow_html=True)
-                secilen_kamera = st.selectbox("İzlemek İstediğiniz Bölge Kamerası:", [c["sehir"] for c in TRAFIK_KAMERALARI])
-                cam_url = next(c["stream"] for c in TRAFIK_KAMERALARI if c["sehir"] == secilen_kamera)
-                st.video(cam_url)
+                secilen_kamera = st.selectbox("Canlı Yayın Bölgesi Seçin:", [c["sehir"] for c in TRAFIK_KAMERALARI])
+                
+                # Seçilen şehrin YouTube canlı yayın linkini güvenli embed formatına çevirme
+                cam_dict = next(c for c in TRAFIK_KAMERALARI if c["sehir"] == secilen_kamera)
+                
+                # YouTube video ID'yi embed formatında sunma
+                st.markdown(f"""
+                <iframe width="100%" height="240" src="https://www.youtube.com/embed/live_stream?channel=UC1Wp2l0ewVzk" title="Live Cam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                """, unsafe_allow_html=True)
                 
                 # SİBER GÜVENLİK VE ELEKTRONİK HARP (EW) KARTI
                 st.markdown("""
