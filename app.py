@@ -28,14 +28,38 @@ st.markdown("""
     .stMetric { background-color: #07131d; border: 1px solid #00ff66; padding: 12px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,102,0.15); }
     div[data-testid="stSidebar"] { background-color: #040a10; border-right: 1px solid #00ff66; }
     
-    .hud-title {
+    /* İRİ, BÜYÜK HARFLİ MİLİTARİST C4ISR HUD BAŞLIĞI */
+    .hud-title-container {
+        background: linear-gradient(90deg, #051810 0%, #020b08 100%);
+        border: 1px solid #00ff66;
+        border-left: 5px solid #00ff66;
+        padding: 18px 24px;
+        border-radius: 6px;
+        box-shadow: 0 0 20px rgba(0,255,102,0.25);
+        margin-bottom: 18px;
+    }
+    .hud-main-title {
         font-family: 'Courier New', monospace;
         color: #00ff66;
-        font-size: 24px;
-        font-weight: bold;
-        letter-spacing: 2px;
-        text-shadow: 0 0 8px rgba(0,255,102,0.4);
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: 3px;
+        text-shadow: 0 0 12px rgba(0,255,102,0.7);
+        text-transform: uppercase;
+        margin: 0;
+        line-height: 1.2;
     }
+    .hud-sub-title {
+        font-family: 'Courier New', monospace;
+        color: #a3ffc7;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-top: 6px;
+        opacity: 0.9;
+    }
+
     .threat-hud {
         background: linear-gradient(90deg, #400000 0%, #100000 100%);
         color: #ff3344;
@@ -174,7 +198,12 @@ if "user_role" not in st.session_state:
     st.session_state["user_role"] = None
 
 if not st.session_state["logged_in"]:
-    st.markdown('<h1 class="hud-title" style="text-align:center;">🛡️ MİLHAD-C4ISR KOMUTA MERKEZİ GİRİŞİ</h1>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hud-title-container" style="text-align:center;">
+        <div class="hud-main-title">🛡️ MİLHAD-C4ISR KOMUTA MERKEZİ</div>
+        <div class="hud-sub-title">MİLLİ HAVA VE DENİZ SAHASI KİMLİK DOĞRULAMA KONSOLU</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.container():
         st.markdown('<div class="login-box">', unsafe_allow_html=True)
@@ -208,8 +237,13 @@ if st.sidebar.button("🚪 Oturumu Kapat"):
     st.session_state["user_role"] = None
     st.rerun()
 
-st.markdown('<div class="hud-title">🛡️ MİLHAD-C4ISR <span style="font-size:16px; color:#8f9ca6; font-weight:normal;">| Entegre Hava Sahası, Radar & Deniz Savunma Komuta Merkezi</span></div>', unsafe_allow_html=True)
-st.caption("AESA Radar Füzyonu, Doğu Akdeniz Donanma Unsurları, Otonom Önleme Geometrisi & Canlı İnsan Telsiz Bağlantısı")
+# --- YENİLENEN İRİ BÜYÜK HARFLİ C4ISR HUD BAŞLIĞI ---
+st.markdown("""
+<div class="hud-title-container">
+    <div class="hud-main-title">🛡️ MİLHAD-C4ISR — ENTEGRE HAVA SAHASI, RADAR VE DENİZ SAVUNMA KOMUTA MERKEZİ</div>
+    <div class="hud-sub-title">AESA RADAR FÜZYONU • DOĞU AKDENİZ DONANMA UNSURLARI • OTONOM ÖNLEME GEOMETRİSİ • CANLI TELSİZ MERKEZİ</div>
+</div>
+""", unsafe_allow_html=True)
 
 # UÇAK GEMİLERİ
 UCAK_GEMILERI = [
